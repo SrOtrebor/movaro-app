@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Detalle del Día{% endblock %}
+
+{% block content %}
+    <h1>Detalle de Turnos - {{ fecha }}</h1>
+    <a href="/calendario/{{ fecha.split('-')[0] }}/{{ fecha.split('-')[1]|int }}">← Volver al Calendario</a>
+    <hr>
+
+    {% if turnos %}
+        <table class="stats-table" width="100%">
+            <thead>
+                <tr>
+                    <th>Hora</th>
+                    <th>Cliente</th>
+                    <th>Servicio</th>
+                    <th>Acción</th> </tr>
+            </thead>
+            <tbody>
+                {% for turno in turnos %}
+                    <tr>
+                        <td>{{ turno.hora }}</td>
+                        <td>{{ turno.nombre }} {{ turno.apellido }}</td>
+                        <td>{{ turno.servicio_nombre }}</td>
+                        <td>
+                            <form action="/turno/borrar" method="post" onsubmit="return confirm('¿Estás segura de que querés cancelar este turno?');">
+                                <input type="hidden" name="turno_id" value="{{ turno.id }}">
+                                <input type="hidden" name="fecha_turno" value="{{ fecha }}">
+                                <button type="submit" style="background:none; border:none; color:red; cursor:pointer; padding:0; font-size: 1em;">Cancelar</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No hay turnos agendados para este día.</p>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,44 @@
+[
+    {
+        "id": 1,
+        "nombre": "Roberto",
+        "apellido": "Laforcada",
+        "telefono": "1168855837",
+        "cumpleanos": "1987-07-12"
+    },
+    {
+        "id": 2,
+        "nombre": "Belen",
+        "apellido": "Mi\u00f1o",
+        "telefono": "1134025082",
+        "cumpleanos": "1990-03-21"
+    },
+    {
+        "id": 3,
+        "nombre": "Roberto ",
+        "apellido": "Laforcada",
+        "telefono": "1168855834",
+        "cumpleanos": "1987-07-12"
+    },
+    {
+        "id": 4,
+        "nombre": "Paris",
+        "apellido": "Laforcada",
+        "telefono": "1134025082",
+        "cumpleanos": "2013-07-13"
+    },
+    {
+        "id": 5,
+        "nombre": "Agustin",
+        "apellido": "Ramires",
+        "telefono": "1154201936",
+        "cumpleanos": "1999-07-13"
+    },
+    {
+        "id": 6,
+        "nombre": "Karol",
+        "apellido": "Bubu",
+        "telefono": "1137768660",
+        "cumpleanos": "2000-07-14"
+    }
+]

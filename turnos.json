@@ -1,0 +1,30 @@
+[
+    {
+        "id": 1,
+        "cliente_id": 1,
+        "servicio_nombre": "Esmaltado Semipermanente",
+        "fecha": "2025-07-20",
+        "hora": "11:30"
+    },
+    {
+        "id": 2,
+        "cliente_id": 2,
+        "servicio_nombre": "Kapping con Nivelaci\u00f3n",
+        "fecha": "2025-07-15",
+        "hora": "11:00"
+    },
+    {
+        "id": 3,
+        "cliente_id": 4,
+        "servicio_nombre": "Esmaltado Semipermanente",
+        "fecha": "2025-07-14",
+        "hora": "12:00"
+    },
+    {
+        "id": 4,
+        "cliente_id": 6,
+        "servicio_nombre": "Retiro de Semipermanente",
+        "fecha": "2025-06-13",
+        "hora": "11:30"
+    }
+]

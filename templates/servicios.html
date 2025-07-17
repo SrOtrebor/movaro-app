@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Mis Servicios{% endblock %}
+
+{% block content %}
+<h1>Gestionar Mis Servicios</h1>
+<p>Agregá, editá o eliminá los servicios que ofrecés en tu salón.</p>
+
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div class="alerta" style="background-color: #d4edda; color: #155724;">{{ messages[0] }}</div>
+    {% endif %}
+{% endwith %}
+<hr>
+
+<div class="layout-container">
+    <div class=".layout-col-principal">
+        <h2>Mis Servicios Actuales</h2>
+        {% if servicios %}
+            <table class="stats-table" width="100%">
+                <thead>
+                    <tr>
+                        <th>Nombre del Servicio</th>
+                        <th>Duración (minutos)</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for servicio in servicios %}
+                        <tr>
+                            <td>{{ servicio.nombre }}</td>
+                            <td>{{ servicio.duracion }}</td>
+                            <td>
+                                <form action="/servicios/borrar/{{ servicio.id }}" method="post" onsubmit="return confirm('¿Estás segura de que querés eliminar este servicio?');">
+                                    <button type="submit" class="boton-eliminar">Eliminar</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>Todavía no agregaste ningún servicio.</p>
+        {% endif %}
+    </div>
+
+    <div class=".layout-col-lateral">
+        <h2>Agregar Nuevo Servicio</h2>
+        <form action="/servicios" method="post">
+            <label for="nombre">Nombre del Servicio:</label><br>
+            <input type="text" id="nombre" name="nombre" required style="width: 95%; padding: 8px; margin-bottom: 10px;"><br>
+
+            <label for="duracion">Duración (en minutos):</label><br>
+            <input type="number" id="duracion" name="duracion" min="5" required style="width: 95%; padding: 8px; margin-bottom: 10px;"><br><br>
+
+            <button type="submit">Agregar Servicio</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

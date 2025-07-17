@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Mis Clientes{% endblock %}
+
+{% block content %}
+    <h1>Mis Clientes</h1>
+    
+    <h2>Nuevo Cliente</h2>
+    <form action="/agregar_cliente" method="post">
+        <label>Nombre:</label> <input type="text" name="nombre" required><br>
+        <label>Apellido:</label> <input type="text" name="apellido" required><br>
+        <label>Teléfono:</label> <input type="tel" name="telefono"><br>
+        <label>Cumpleaños:</label> <input type="date" name="cumpleanos"><br><br>
+        <button type="submit">Guardar Cliente</button>
+    </form>
+    <hr>
+
+    <h2>Listado de Clientes</h2>
+    <ul>
+        {% for cliente in clientes %}
+            <li>
+                <strong><a href="/cliente/{{ cliente.id }}">{{ cliente.nombre }} {{ cliente.apellido }}</a></strong>
+            </li>
+        {% else %}
+            <li>No tenés clientes registrados.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}

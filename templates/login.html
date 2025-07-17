@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Iniciar Sesión{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <img src="{{ url_for('static', filename='logo_login.png') }}" alt="Logo movaro" class="login-logo">
+    
+    <div class="formulario-login">
+        <h2>Iniciar Sesión</h2>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <p class="flash-{{ category }}">{{ message }}</p>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form action="/login" method="post">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+            
+            <label for="password">Contraseña:</label>
+            <input type="password" id="password" name="password" required>
+            
+            <button type="submit">Ingresar</button>
+        </form>
+        <p style="text-align: center; margin-top: 20px;">¿No tenés cuenta? <a href="/registro">Registrate acá</a></p>
+    </div>
+</div>
+{% endblock %}

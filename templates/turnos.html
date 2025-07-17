@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Agenda de Turnos{% endblock %}
+
+{% block content %}
+    <h1>Agenda de Turnos</h1>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="error">{{ messages[0] }}</div>
+        {% endif %}
+    {% endwith %}
+
+    <h2>Agendar Nuevo Turno</h2>
+    <form action="/agregar_turno" method="post">
+        <label>Cliente:</label>
+        <select name="cliente_id" required>
+            <option value="">Seleccionar cliente...</option>
+            {% for cliente in clientes %}
+                <option value="{{ cliente.id }}">{{ cliente.nombre }} {{ cliente.apellido }}</option>
+            {% endfor %}
+        </select><br>
+        <label>Servicio:</label>
+        <select name="servicio_nombre" required>
+            <option value="">Seleccionar servicio...</option>
+            {% for servicio in servicios %}
+                <option value="{{ servicio.nombre }}">{{ servicio.nombre }}</option>
+            {% endfor %}
+        </select><br>
+        <label>Fecha:</label> <input type="date" name="fecha" required><br>
+        <label>Hora:</label> <input type="time" name="hora" required><br><br>
+        <button type="submit">Agendar Turno</button>
+    </form>
+    <hr>
+    
+    <h2>Próximos Turnos</h2>
+    <ul>
+        {% for turno in turnos %}
+            <li>
+                <strong>Fecha:</strong> {{ turno.fecha }} - <strong>Hora:</strong> {{ turno.hora }}<br>
+                <strong>Cliente:</strong> {{ turno.cliente_nombre }}<br>
+                <strong>Servicio:</strong> {{ turno.servicio_nombre }}
+            </li>
+        {% else %}
+            <li>No hay turnos agendados.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}

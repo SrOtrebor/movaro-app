@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Calendario de Turnos{% endblock %}
+
+{% block content %}
+
+<div class="calendario-header">
+    <div class="calendario-nav">
+        <a href="/calendario/{{ mes_anterior.year }}/{{ mes_anterior.month }}">‹ Mes Anterior</a>
+    </div>
+    <h2>{{ nombre_mes }} {{ ano }}</h2>
+    <div class="calendario-nav">
+        <a href="/calendario/{{ mes_siguiente.year }}/{{ mes_siguiente.month }}">Mes Siguiente ›</a>
+    </div>
+</div>
+
+<div class="calendario-subnav">
+    <a href="/panel">← Volver al Panel de Control</a>
+</div>
+
+<div class="calendario-container">
+    <div class="calendario-tabla-wrapper">
+        <table class="calendario-tabla">
+            <thead>
+                <tr>
+                    <th>Lunes</th><th>Martes</th><th>Miércoles</th><th>Jueves</th><th>Viernes</th><th>Sábado</th><th>Domingo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for semana in dias_del_mes %}
+                    <tr>
+                        {% for dia in semana %}
+                            {% if dia == 0 %}
+                                <td class="dia-otro-mes"></td>
+                            {% else %}
+                                <td class="celda-dia {% if dia in turnos_por_dia %}dia-ocupado{% endif %}" onclick="window.location.href='/dia/{{ ano }}/{{ mes }}/{{ dia }}';">
+                                    <div class="dia-numero">{{ dia }}</div>
+                                    {% if dia in turnos_por_dia %}
+                                        <ul class="turnos-lista">
+                                        {% for hora in turnos_por_dia[dia] %}
+                                            <li>{{ hora }}</li>
+                                        {% endfor %}
+                                        </ul>
+                                    {% endif %}
+                                </td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="formulario-turno">
+        <h3>Agendar Nuevo Turno</h3>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                {% if category == 'error' %}
+                    <div class="alerta flash-{{ category }}">{{ message }}</div>
+                {% endif %}
+            {% endfor %}
+        {% endwith %}
+
+        <form action="/agregar_turno" method="post">
+            <label for="cliente_id">Cliente:</label><br>
+            <select id="cliente_id" name="cliente_id" required style="width:100%; padding: 8px; margin-bottom: 10px;">
+                <option value="">Seleccionar cliente...</option>
+                {% for cliente in clientes %}
+                    <option value="{{ cliente.id }}">{{ cliente.nombre }} {{ cliente.apellido }}</option>
+                {% endfor %}
+            </select><br>
+
+            <label for="servicio_id">Servicio:</label><br>
+            <select id="servicio_id" name="servicio_id" required style="width:100%; padding: 8px; margin-bottom: 10px;">
+                <option value="">Seleccionar servicio...</option>
+                {% for servicio in servicios %}
+                    <option value="{{ servicio.id }}">{{ servicio.nombre }}</option>
+                {% endfor %}
+            </select><br>
+            
+            <label for="fecha">Fecha:</label><br>
+            <input type="date" id="fecha" name="fecha" required style="width:95%; padding: 8px; margin-bottom: 10px;"><br>
+            
+            <label for="hora">Hora:</label><br>
+            <input type="time" id="hora" name="hora" required style="width:95%; padding: 8px; margin-bottom: 10px;"><br><br>
+
+            <button type="submit">Agendar Turno</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

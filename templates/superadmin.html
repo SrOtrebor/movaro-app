@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Super Admin{% endblock %}
+
+{% block content %}
+    <h1>Panel de Super Administrador</h1>
+    <p>Desde aquí podés gestionar todos los salones registrados en la plataforma.</p>
+    
+     <hr>
+
+    <h2>Listado de Usuarios</h2>
+    <table class="stats-table" width="100%">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre del Salón</th>
+                <th>Email</th>
+                <th>Estado</th>
+                <th>Vencimiento</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for usuario in usuarios %}
+                <tr>
+                    <td>{{ usuario.id }}</td>
+                    <td>{{ usuario.nombre_salon }}</td>
+                    <td>{{ usuario.email }}</td>
+                    <td>{{ usuario.estado }}</td>
+                    <td>
+                        <form action="/superadmin/set_vencimiento" method="post" style="display:inline-flex; gap: 5px; align-items: center;">
+                            <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
+                            <input type="date" name="fecha_vencimiento" value="{{ usuario.fecha_vencimiento or '' }}">
+                            <button type="submit">Guardar</button>
+                        </form>
+                    </td>
+                    <td style="display: flex; gap: 10px;">
+                        {% if usuario.estado == 'pendiente' %}
+                            <form action="/superadmin/cambiar_estado" method="post" style="margin:0;">
+                                <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
+                                <input type="hidden" name="nuevo_estado" value="activo">
+                                <button type="submit" style="background-color: #28a745;">Activar</button>
+                            </form>
+                        {% elif usuario.estado == 'activo' %}
+                            <form action="/superadmin/cambiar_estado" method="post" style="margin:0;">
+                                <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
+                                <input type="hidden" name="nuevo_estado" value="suspendido">
+                                <button type="submit" style="background-color: #ffc107; color: black;">Suspender</button>
+                            </form>
+                        {% elif usuario.estado == 'suspendido' %}
+                             <form action="/superadmin/cambiar_estado" method="post" style="margin:0;">
+                                <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
+                                <input type="hidden" name="nuevo_estado" value="activo">
+                                <button type="submit" style="background-color: #28a745;">Reactivar</button>
+                            </form>
+                        {% endif %}
+
+                        <form action="/superadmin/borrar_usuario" method="post" style="margin:0;" onsubmit="return confirm('¿ESTÁS SEGURO? Esta acción es irreversible y borrará al usuario y TODOS sus datos (clientes, turnos, fotos).');">
+                            <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
+                            <button type="submit" style="background-color: #dc3545;">Borrar</button>
+                        </form>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="6">No hay usuarios registrados.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

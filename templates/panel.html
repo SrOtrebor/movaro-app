@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Panel de Control{% endblock %}
+
+{% block content %}
+
+<h1>Panel de Control</h1>
+<p>¡Bienvenida/o de nuevo, {{ session.nombre_salon }}!</p>
+
+<hr>
+
+<div class="layout-container">
+    <div class="layout-col-principal">
+        <h2>Alertas de Hoy</h2>
+
+        {% if alerta_vencimiento %}
+            <div class="alerta alerta-vencimiento">
+                <h3>🔔 Vencimiento Próximo</h3>
+                <p>{{ alerta_vencimiento }} Por favor, contactá al administrador para renovarla.</p>
+            </div>
+        {% endif %}
+
+        {% if cumpleaneras %}
+            <div class="alerta alerta-cumple">
+                <h3>🎂 ¡Feliz Cumpleaños!</h3>
+                <ul>
+                    {% for clienta in cumpleaneras %}
+                        <li>
+                            <strong>{{ clienta.nombre }} {{ clienta.apellido }}</strong> -
+                            {% set texto_cumple = "¡Hola " ~ clienta.nombre ~ "! 🥳 Te deseo un muy feliz cumpleaños. Para celebrar, te regalamos un 20% de descuento en tu próxima visita." %}
+                            <a href="https://wa.me/{{ clienta.telefono_wa }}?text={{ texto_cumple | urlencode }}" target="_blank">Enviar Saludo</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        {% if turnos_manana %}
+            <div class="alerta alerta-turno">
+                <h3>🗓️ Recordatorios para Mañana</h3>
+                <ul>
+                    {% for turno in turnos_manana %}
+                        <li>
+                            <strong>{{ turno.hora }} - {{ turno.cliente_nombre }}</strong> ({{ turno.servicio_nombre }}) -
+                            {% set texto_recordatorio = "¡Hola " ~ turno.cliente_nombre.split(' ')[0] ~ "! Te escribo para recordarte tu turno de manicura mañana a las " ~ turno.hora ~ ". ¡Te espero!" %}
+                            <a href="https://wa.me/{{ turno.cliente_telefono_wa }}?text={{ texto_recordatorio | urlencode }}" target="_blank">Enviar Recordatorio</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        
+        {% if clientes_a_premiar %}
+            <div class="alerta" style="background-color: #f5d1f1; border-color: #eeb4ea; color: #850c60;">
+                <h3>🏆 ¡Clientes Leales para Premiar!</h3>
+                <ul>
+                    {% for clienta in clientes_a_premiar %}
+                        <li style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <span>
+                                <strong>{{ clienta.nombre }} {{ clienta.apellido }}</strong> (alcanzó los {{ clienta.total_turnos }} turnos).
+                            </span>
+                            <div style="display:flex; gap: 10px;">
+                                {% set texto_premio = "¡Hola " ~ clienta.nombre ~ "! ✨ Quería contarte que por tu fidelidad alcanzaste los " ~ clienta.total_turnos ~ " servicios y te ganaste un premio especial en tu próxima visita. ¡Gracias por elegirme siempre!" %}
+                                <a href="https://wa.me/{{ clienta.telefono_wa }}?text={{ texto_premio | urlencode }}" target="_blank">Avisar Premio</a>
+                                <form action="/premiar_cliente" method="post" style="margin:0;">
+                                    <input type="hidden" name="cliente_id" value="{{ clienta.id }}">
+                                    <button type="submit">Marcar como Premiado</button>
+                                </form>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        {% if clientes_inactivos %}
+            <div class="alerta alerta-inactivo">
+                <h3>📈 Clientes para Reactivar</h3>
+                <ul>
+                    {% for clienta in clientes_inactivos %}
+                        <li>
+                            <strong>{{ clienta.nombre }} {{ clienta.apellido }}</strong> -
+                            {% set texto_reactivar = "¡Hola " ~ clienta.nombre ~ "! ¿Cómo estás? Hace tiempo no nos vemos. Quería contarte que tenemos nuevos diseños y promos. ¡Cuando quieras podés chusmear la agenda para un próximo turno! Te mando un beso." %}
+                            <a href="https://wa.me/{{ clienta.telefono_wa }}?text={{ texto_reactivar | urlencode }}" target="_blank">Contactar</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        
+        {% if not cumpleaneras and not turnos_manana and not clientes_inactivos and not clientes_a_premiar %}
+            <p>No hay alertas para hoy. ¡Todo tranquilo!</p>
+        {% endif %}
+
+    </div>
+
+    <div class="layout-col-lateral">
+        <h2>{{ nombre_mes }} {{ ano }}</h2>
+        <table class="mini-calendario">
+            <thead><tr><th>Lu</th><th>Ma</th><th>Mi</th><th>Ju</th><th>Vi</th><th>Sá</th><th>Do</th></tr></thead>
+            <tbody>
+                {% for semana in dias_del_mes %}
+                <tr>
+                    {% for dia in semana %}
+                        <td class="{% if dia == 0 %}dia-otro-mes{% elif dia in dias_con_turnos %}dia-ocupado{% endif %}">{% if dia != 0 %}{{ dia }}{% endif %}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <hr>
+        <h2>Configuración</h2>
+        <h3>Sistema de Fidelización</h3>
+        <form action="/panel" method="post">
+            <label for="meta">Premiar al Cliente cada:</label>
+            <input type="number" id="meta" name="meta_fidelizacion" min="1" value="{{ meta_actual }}">
+            <label>servicios.</label>
+            <br><br>
+            <button type="submit">Guardar Meta</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
