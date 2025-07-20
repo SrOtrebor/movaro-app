@@ -14,7 +14,10 @@
                 <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo movaro" height="40">
             </a>
         </div>
-        <div class="links">
+        
+        <button class="hamburger" aria-label="Abrir menú">☰</button>
+
+        <div class="nav-links">
             <a href="/panel">Panel</a>
             <a href="/calendario">Agenda</a>
             <a href="/clientes">Clientes</a>
@@ -41,9 +44,11 @@
         const hamburger = document.querySelector('.hamburger');
         const navLinks = document.querySelector('.nav-links');
 
-        hamburger.addEventListener('click', () => {
-            navLinks.classList.toggle('active');
-        });
+        if (hamburger && navLinks) {
+            hamburger.addEventListener('click', () => {
+                navLinks.classList.toggle('active');
+            });
+        }
     </script>
 </body>
 </html>

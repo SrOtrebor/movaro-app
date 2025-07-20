@@ -162,7 +162,6 @@ hr { border: none; border-top: 1px solid var(--color-borde-suave); margin: 25px 
     width: 100%;
 }
 /* --- Estilos para la Navegación Móvil --- */
-
 .hamburger {
     display: none; /* Oculto por defecto en pantallas grandes */
     background: none;
@@ -177,10 +176,11 @@ hr { border: none; border-top: 1px solid var(--color-borde-suave); margin: 25px 
     align-items: center;
 }
 
-/* --- Código Responsivo para la Botonera --- */
+/* --- CÓDIGO RESPONSIVO (INCLUYENDO NAVBAR) --- */
 @media (max-width: 900px) {
     .navbar {
         flex-wrap: wrap;
+        justify-content: space-between;
     }
     
     .hamburger {
@@ -194,10 +194,19 @@ hr { border: none; border-top: 1px solid var(--color-borde-suave); margin: 25px 
         text-align: center;
         gap: 15px;
         padding-top: 20px;
+        padding-bottom: 10px;
     }
 
     /* Esta clase se agregará con JavaScript para mostrar el menú */
     .nav-links.active {
         display: flex;
+    }
+
+    .layout-container, .calendario-container {
+        flex-direction: column;
+    }
+    .layout-col-lateral, .formulario-turno, .calendario-tabla-wrapper {
+        width: 100%;
+        margin-top: 30px;
     }
 }
