@@ -177,31 +177,43 @@ hr { border: none; border-top: 1px solid var(--color-borde-suave); margin: 25px 
 
     /* --- Estilos para hacer la tabla de Super Admin responsiva --- */
     .stats-table thead {
-        /* Ocultamos los encabezados en móvil, porque ahora van en las tarjetas */
-        display: none;
-    }
-    .stats-table, .stats-table tbody, .stats-table tr, .stats-table td {
-        display: block; /* Hacemos que cada elemento se comporte como un bloque */
-        width: 100%;
+        border: none;
+        clip: rect(0 0 0 0);
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        padding: 0;
+        position: absolute;
+        width: 1px;
     }
     .stats-table tr {
-        margin-bottom: 15px; /* Espacio entre cada "tarjeta" de usuario */
-        background-color: var(--color-blanco);
         border: 1px solid var(--color-borde-suave);
         border-radius: 5px;
+        display: block;
+        margin-bottom: 20px;
+        padding: 15px;
     }
     .stats-table td {
-        text-align: right; /* Alineamos el dato a la derecha */
-        position: relative;
-        padding-left: 50%; /* Dejamos espacio para la etiqueta */
-        border-bottom: 1px solid var(--color-borde-suave);
+        display: block;
+        text-align: right;
+        font-size: 1em;
+        border-bottom: 1px dotted var(--color-borde-suave);
+        padding: 10px 0;
+    }
+    .stats-table td:last-child {
+        border-bottom: none;
     }
     .stats-table td:before {
-        /* Usamos el 'data-label' que pusimos en el HTML para crear la etiqueta */
         content: attr(data-label);
-        position: absolute;
-        left: 10px;
+        float: left;
         font-weight: bold;
-        text-align: left;
+        text-transform: uppercase;
+        font-size: 0.9em;
+    }
+    .stats-table .acciones-admin {
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-end;
+        gap: 10px;
     }
 }

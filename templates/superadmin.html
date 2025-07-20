@@ -6,7 +6,14 @@
     <h1>Panel de Super Administrador</h1>
     <p>Desde aquí podés gestionar todos los salones registrados en la plataforma.</p>
     
-     <hr>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alerta flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    <hr>
 
     <h2>Listado de Usuarios</h2>
     <table class="stats-table" width="100%">
@@ -34,8 +41,31 @@
                             <button type="submit">Guardar</button>
                         </form>
                     </td>
-                    <td data-label="Acciones" style="display: flex; gap: 10px;">
-                        </td>
+                    <td data-label="Acciones" class="acciones-admin">
+                        {% if usuario.estado == 'pendiente' %}
+                            <form action="/superadmin/cambiar_estado" method="post" style="margin:0;">
+                                <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
+                                <input type="hidden" name="nuevo_estado" value="activo">
+                                <button type="submit" class="boton-accion boton-activar">Activar</button>
+                            </form>
+                        {% elif usuario.estado == 'activo' %}
+                            <form action="/superadmin/cambiar_estado" method="post" style="margin:0;">
+                                <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
+                                <input type="hidden" name="nuevo_estado" value="suspendido">
+                                <button type="submit" class="boton-accion boton-suspender">Suspender</button>
+                            </form>
+                        {% elif usuario.estado == 'suspendido' %}
+                             <form action="/superadmin/cambiar_estado" method="post" style="margin:0;">
+                                <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
+                                <input type="hidden" name="nuevo_estado" value="activo">
+                                <button type="submit" class="boton-accion boton-activar">Reactivar</button>
+                            </form>
+                        {% endif %}
+                        <form action="/superadmin/borrar_usuario" method="post" style="margin:0;" onsubmit="return confirm('¿ESTÁS SEGURO? Esta acción es irreversible y borrará al usuario y TODOS sus datos (clientes, turnos, fotos).');">
+                            <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
+                            <button type="submit" class="boton-accion boton-eliminar">Borrar</button>
+                        </form>
+                    </td>
                 </tr>
             {% else %}
                 <tr>
