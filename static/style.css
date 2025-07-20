@@ -178,35 +178,52 @@ hr { border: none; border-top: 1px solid var(--color-borde-suave); margin: 25px 
 
 /* --- CÓDIGO RESPONSIVO (INCLUYENDO NAVBAR) --- */
 @media (max-width: 900px) {
-    .navbar {
-        flex-wrap: wrap;
-        justify-content: space-between;
-    }
-    
-    .hamburger {
-        display: block; /* Mostramos el botón hamburguesa en móviles */
-    }
+.navbar {
+flex-wrap: wrap;
+justify-content: space-between; /* Logo a la izquierda, hamburguesa a la derecha /
+align-items: center; / Centrar verticalmente logo y hamburguesa /
+padding: 10px 20px; / Añadir un poco de espacio a los lados */
+}
+.hamburger {
+    display: block;
+    color: var(--color-blanco); /* Asegurarse que el icono se vea */
+    font-size: 2.5em; /* Hacer el icono más grande */
+    padding: 10px; /* Darle espacio para tocar */
+    margin-left: auto; /* Empujarlo a la derecha */
+}
 
-    .nav-links {
-        display: none; /* Ocultamos los enlaces por defecto en móviles */
-        flex-direction: column;
-        width: 100%;
-        text-align: center;
-        gap: 15px;
-        padding-top: 20px;
-        padding-bottom: 10px;
-    }
+.brand {
+    order: 1; /* Poner el logo primero en el orden visual */
+}
 
-    /* Esta clase se agregará con JavaScript para mostrar el menú */
-    .nav-links.active {
-        display: flex;
-    }
+.hamburger {
+    order: 2; /* Poner el botón hamburguesa segundo */
+}
 
-    .layout-container, .calendario-container {
-        flex-direction: column;
-    }
-    .layout-col-lateral, .formulario-turno, .calendario-tabla-wrapper {
-        width: 100%;
-        margin-top: 30px;
-    }
+.brand img {
+    height: 50px; /* Hacer el logo más grande */
+}
+
+.nav-links {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    text-align: center;
+    gap: 15px;
+    padding: 20px 0;
+    order: 3; /* Poner los enlaces debajo del logo y la hamburguesa */
+    background-color: var(--color-primario); /* Fondo para que los enlaces se vean */
+}
+
+.nav-links.active {
+    display: flex;
+}
+
+.layout-container, .calendario-container {
+    flex-direction: column;
+}
+.layout-col-lateral, .formulario-turno, .calendario-tabla-wrapper {
+    width: 100%;
+    margin-top: 30px;
+}
 }
