@@ -1,8 +1,9 @@
 /* --- Paleta de Colores "movaro" --- */
 :root {
     --color-primario: #C75F51;
-    --color-fondo: #F3F4EE;
+    --color-secundario: #27626A;
     --color-texto: #3d405b;
+    --color-fondo: #F3F4EE;
     --color-blanco: #FFFFFF;
     --color-borde-suave: #e0e0e0;
 }
@@ -43,8 +44,11 @@ hr { border: none; border-top: 1px solid var(--color-borde-suave); margin: 25px 
     justify-content: space-between;
 }
 .navbar .brand a { display: flex; align-items: center; }
+.navbar .links {
+    display: flex; /* Visible en escritorio */
+}
 .navbar .links a {
-    color: var(--color-fondo); /* Texto color blanco hueso */
+    color: var(--color-fondo);
     margin-left: 25px;
     font-weight: bold;
 }
@@ -54,13 +58,73 @@ hr { border: none; border-top: 1px solid var(--color-borde-suave); margin: 25px 
     color: var(--color-fondo); font-size: 2.5em; cursor: pointer;
 }
 
-/* --- Layouts de Columnas (Desktop) --- */
-.layout-container, .calendario-container { display: flex; flex-direction: row; gap: 30px; }
-.layout-col-principal, .calendario-tabla-wrapper { flex: 1; }
-.layout-col-lateral { width: 450px; flex-shrink: 0; }
-.formulario-turno { width: 350px; flex-shrink: 0; }
+/* --- Alertas y Mensajes Flash --- */
+.alerta {
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border: 1px solid transparent;
+}
+.flash-success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
+.flash-error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+.alerta-turno { background-color: #cce5ff; color: #004085; border-color: #b8daff; }
+.alerta-cumple { background-color: #fff3cd; color: #856404; border-color: #ffeeba; }
+.alerta-inactivo { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+.alerta-vencimiento { background-color: #fff3cd; color: #856404; border-color: #ffeeba; }
+.alerta h3 { margin-top: 0; }
+.alerta ul { padding-left: 20px; margin: 0; }
 
-/* --- Página de Login --- */
+/* --- Layouts de Columnas --- */
+.layout-container, .calendario-container, .servicios-container {
+    display: flex;
+    flex-direction: row;
+    gap: 30px;
+}
+.layout-col-principal, .calendario-tabla-wrapper, .columna-servicios { flex: 1; min-width: 0; }
+.layout-col-lateral, .formulario-turno, .columna-formulario { width: 450px; flex-shrink: 0; }
+
+/* --- Calendario Grande (Agenda) --- */
+.calendario-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.calendario-header h2 { margin: 0; }
+.calendario-nav a {
+    background-color: var(--color-secundario);
+    color: var(--color-blanco);
+    padding: 8px 12px;
+    font-weight: bold;
+    text-decoration: none;
+    border-radius: 5px;
+}
+.calendario-tabla { width: 100%; border-collapse: collapse; background-color: var(--color-blanco); }
+.calendario-tabla th, .calendario-tabla td { padding: 8px; text-align: left; vertical-align: top; height: 120px; border: 1px solid var(--color-borde-suave); }
+.calendario-tabla th { text-align: center; }
+.dia-numero { font-weight: bold; }
+.dia-otro-mes { background-color: #f9f9f9; }
+.dia-ocupado { background-color: #fcebe8; }
+.turnos-lista { font-size: 0.8em; margin-top: 5px; padding-left: 5px; list-style-type: none; margin-left: 0; }
+.turnos-lista li { background-color: var(--color-primario); color: var(--color-blanco); padding: 2px 5px; border-radius: 3px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.celda-dia { cursor: pointer; }
+.celda-dia:hover { background-color: #e9ecef; }
+
+/* --- Mini Calendario (Panel de Control) --- */
+.mini-calendario {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+    background-color: var(--color-blanco);
+}
+.mini-calendario th, .mini-calendario td {
+    padding: 8px;
+    text-align: center;
+    height: 45px;
+    border: 1px solid var(--color-borde-suave);
+}
+
+/* --- Otros Componentes --- */
+.stats-table { width: 100%; border-collapse: collapse; }
+.stats-table th, .stats-table td { text-align: left; padding: 12px; border-bottom: 1px solid var(--color-borde-suave); }
+.stats-table tbody tr { background-color: var(--color-blanco); }
+.stats-table tbody tr:hover { background-color: #fafafa; }
+.boton-eliminar { background-color: #e74c3c; }
 .login-container { text-align: center; padding-top: 40px; }
 .login-logo { width: 150px; height: auto; margin-bottom: 25px; }
 .formulario-login {
@@ -75,32 +139,35 @@ hr { border: none; border-top: 1px solid var(--color-borde-suave); margin: 25px 
 }
 .formulario-login button { width: 100%; }
 
-/* --- CÓDIGO RESPONSIVO (MÓVIL) --- */
+/* --- CÓDIGO RESPONSIVO --- */
 @media (max-width: 900px) {
     .navbar .links {
-        display: none; /* Ocultamos los links por defecto */
-        flex-direction: column;
+        display: none;
+        order: 3;
         width: 100%;
+        flex-direction: column;
         text-align: center;
         gap: 20px;
         padding: 20px 0;
-        background-color: var(--color-primario); /* Fondo para el menú desplegable */
-        order: 3; /* Se posiciona debajo */
+        background-color: var(--color-primario);
     }
     .navbar .links.active {
-        display: flex; /* Mostramos el menú al hacer clic */
+        display: flex;
     }
     .navbar .hamburger {
-        display: block; /* Mostramos el botón hamburguesa */
+        display: block;
+        order: 2;
+    }
+    .navbar .brand {
+        order: 1;
     }
     .layout-container, .calendario-container {
         flex-direction: column;
     }
-    .layout-col-lateral, .formulario-turno {
+    .layout-col-lateral, .formulario-turno, .calendario-tabla-wrapper {
         width: 100%;
         margin-top: 30px;
     }
-    /* Arreglo para el login en celular */
     .formulario-login {
         padding: 20px;
         width: 90%;
