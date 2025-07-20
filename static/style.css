@@ -177,60 +177,51 @@ hr { border: none; border-top: 1px solid var(--color-borde-suave); margin: 25px 
 }
 
 /* --- CÓDIGO RESPONSIVO (INCLUYENDO NAVBAR) --- */
+/* --- CÓDIGO RESPONSIVO PARA CELULARES (VERSIÓN FINAL) --- */
+
 @media (max-width: 900px) {
     .navbar {
-        /* ESTA ES LA PARTE IMPORTANTE */
         display: flex;
-        flex-direction: row; /* Aseguramos que sea una fila */
-        justify-content: space-between; /* ¡Esto empuja todo a los costados! */
-        align-items: center; /* Centra verticalmente */
-        flex-wrap: wrap; /* Permite que los links salten abajo */
+        flex-wrap: wrap;
+        justify-content: space-between; /* Empuja los elementos a los costados */
+        align-items: center; /* Los centra verticalmente */
     }
-    /* ... (el resto de tus estilos para móvil) ... */
-.hamburger {
-display: block;
-color: var(--color-blanco);
-font-size: 2.5em;
-padding: 10px;
-margin-left: auto; /* Empujarlo a la derecha /
-order: 2; / El botón hamburguesa va a la derecha */
-}
 
-.brand {
-order: 1; /* El logo va a la izquierda */
-}
+    /* Forzamos el orden visual de los elementos */
+    .navbar .brand {
+        order: 1; /* El logo siempre primero */
+    }
+    .navbar .hamburger {
+        order: 2; /* El botón hamburguesa siempre segundo */
+    }
+    .navbar .nav-links {
+        order: 3; /* El menú desplegable siempre tercero (abajo) */
+        width: 100%;
+    }
 
-.brand img {
-height: 60px; /* Logo aún más grande */
-}
+    .hamburger {
+        display: block;
+    }
 
-.nav-links {
-display: none;
-flex-direction: column;
-width: 100%;
-text-align: center;
-gap: 15px;
-padding: 20px 0;
-order: 3; /* Los enlaces debajo /
-background-color: var(--color-primario); / Fondo del menú */
-}
+    .nav-links {
+        display: none;
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+        padding-top: 20px;
+        padding-bottom: 10px;
+    }
 
-.nav-links.active {
-display: flex;
-}
+    .nav-links.active {
+        display: flex;
+    }
 
-.nav-links.active a {
-color: var(--color-blanco) !important; /* Asegurar que el texto de los links sea blanco */
-text-decoration: none;
-font-size: 1.2em;
-padding: 10px 0;
-}
-
-.layout-container, .calendario-container {
-flex-direction: column;
-}
-.layout-col-lateral, .formulario-turno, .calendario-tabla-wrapper {
-width: 100%;
-margin-top: 30px;
-}
+    /* El resto de las reglas responsivas */
+    .layout-container, .calendario-container {
+        flex-direction: column;
+    }
+    .layout-col-lateral, .formulario-turno, .calendario-tabla-wrapper {
+        width: 100%;
+        margin-top: 30px;
+    }
 }
