@@ -15,9 +15,7 @@
             </a>
         </div>
         
-        <button class="hamburger" aria-label="Abrir menú">☰</button>
-
-        <div class="nav-links">
+        <div class="links">
             <a href="/panel">Panel</a>
             <a href="/calendario">Agenda</a>
             <a href="/clientes">Clientes</a>
@@ -25,6 +23,8 @@
             <a href="/servicios">Mis Servicios</a> 
             <a href="/logout">Cerrar Sesión</a>
         </div>
+        
+        <button class="hamburger" aria-label="Abrir menú">☰</button>
     </nav>
     {% endif %}
 
@@ -42,7 +42,7 @@
 
     <script>
         const hamburger = document.querySelector('.hamburger');
-        const navLinks = document.querySelector('.nav-links');
+        const navLinks = document.querySelector('.navbar .links'); // Selector más específico
 
         if (hamburger && navLinks) {
             hamburger.addEventListener('click', () => {

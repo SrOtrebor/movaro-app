@@ -34,62 +34,75 @@ button {
 button:hover { opacity: 0.85; }
 hr { border: none; border-top: 1px solid var(--color-borde-suave); margin: 25px 0; }
 
-/* --- Barra de Navegación --- */
+/* --- Barra de Navegación (Desktop) --- */
 .navbar {
     background-color: var(--color-primario);
     padding: 10px 30px;
     display: flex;
-    align-items: center; /* Centra verticalmente */
-    justify-content: space-between; /* Empuja el logo y los links a los costados */
-}
-.navbar .brand {
-    /* Esta regla no es necesaria en escritorio, pero la dejamos para consistencia */
-}
-.navbar .links a {
-    color: var(--color-fondo); /* Texto color blanco hueso */
-    margin-left: 20px;
-    font-weight: normal;
+    align-items: center;
+    justify-content: space-between;
 }
 .navbar .brand a { display: flex; align-items: center; }
-
-/* --- Menú Hamburguesa (Oculto en Escritorio) --- */
-.hamburger {
-    display: none;
-    background: none;
-    border: none;
-    color: var(--color-fondo);
-    font-size: 2.5em;
-    cursor: pointer;
+.navbar .links a {
+    color: var(--color-fondo); /* Texto color blanco hueso */
+    margin-left: 25px;
+    font-weight: bold;
 }
+.hamburger {
+    display: none; /* Oculto en escritorio */
+    background: none; border: none;
+    color: var(--color-fondo); font-size: 2.5em; cursor: pointer;
+}
+
+/* --- Layouts de Columnas (Desktop) --- */
+.layout-container, .calendario-container { display: flex; flex-direction: row; gap: 30px; }
+.layout-col-principal, .calendario-tabla-wrapper { flex: 1; }
+.layout-col-lateral { width: 450px; flex-shrink: 0; }
+.formulario-turno { width: 350px; flex-shrink: 0; }
+
+/* --- Página de Login --- */
+.login-container { text-align: center; padding-top: 40px; }
+.login-logo { width: 150px; height: auto; margin-bottom: 25px; }
+.formulario-login {
+    max-width: 400px; margin: 0 auto; background: var(--color-blanco);
+    padding: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    text-align: left;
+}
+.formulario-login input {
+    width: 100%; box-sizing: border-box; padding: 10px;
+    margin-top: 5px; margin-bottom: 15px; border: 1px solid var(--color-borde-suave);
+    border-radius: 4px;
+}
+.formulario-login button { width: 100%; }
 
 /* --- CÓDIGO RESPONSIVO (MÓVIL) --- */
 @media (max-width: 900px) {
-    .navbar {
-        flex-wrap: wrap; /* Permite que el menú de links se vaya abajo */
-    }
-    .navbar .brand {
-        flex-grow: 1; /* El logo ocupa todo el espacio disponible, empujando la hamburguesa a la derecha */
-    }
-    .hamburger {
-        display: block; /* Se muestra el botón hamburguesa */
-    }
-    .nav-links {
-        display: none; /* Se ocultan los links de texto */
-        width: 100%; /* El menú desplegable ocupa todo el ancho */
+    .navbar .links {
+        display: none; /* Ocultamos los links por defecto */
         flex-direction: column;
+        width: 100%;
         text-align: center;
-        gap: 15px;
-        padding-top: 20px;
+        gap: 20px;
+        padding: 20px 0;
+        background-color: var(--color-primario); /* Fondo para el menú desplegable */
+        order: 3; /* Se posiciona debajo */
     }
-    .nav-links.active {
-        display: flex; /* Se muestra el menú al hacer clic */
+    .navbar .links.active {
+        display: flex; /* Mostramos el menú al hacer clic */
     }
-    /* El resto de las reglas responsivas */
+    .navbar .hamburger {
+        display: block; /* Mostramos el botón hamburguesa */
+    }
     .layout-container, .calendario-container {
         flex-direction: column;
     }
     .layout-col-lateral, .formulario-turno {
         width: 100%;
         margin-top: 30px;
+    }
+    /* Arreglo para el login en celular */
+    .formulario-login {
+        padding: 20px;
+        width: 90%;
     }
 }
