@@ -161,3 +161,43 @@ hr { border: none; border-top: 1px solid var(--color-borde-suave); margin: 25px 
 .formulario-login button {
     width: 100%;
 }
+/* --- Estilos para la Navegación Móvil --- */
+
+.hamburger {
+    display: none; /* Oculto por defecto en pantallas grandes */
+    background: none;
+    border: none;
+    color: var(--color-fondo);
+    font-size: 2em;
+    cursor: pointer;
+}
+
+.nav-links {
+    display: flex; /* Por defecto, los enlaces están en línea */
+    align-items: center;
+}
+
+/* --- Código Responsivo para la Botonera --- */
+@media (max-width: 900px) {
+    .navbar {
+        flex-wrap: wrap;
+    }
+    
+    .hamburger {
+        display: block; /* Mostramos el botón hamburguesa en móviles */
+    }
+
+    .nav-links {
+        display: none; /* Ocultamos los enlaces por defecto en móviles */
+        flex-direction: column;
+        width: 100%;
+        text-align: center;
+        gap: 15px;
+        padding-top: 20px;
+    }
+
+    /* Esta clase se agregará con JavaScript para mostrar el menú */
+    .nav-links.active {
+        display: flex;
+    }
+}
