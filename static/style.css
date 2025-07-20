@@ -140,7 +140,9 @@ hr { border: none; border-top: 1px solid var(--color-borde-suave); margin: 25px 
 .formulario-login button { width: 100%; }
 
 /* --- CÓDIGO RESPONSIVO --- */
-@media (max-width: 900px) {
+@media (max-width: 900px)  {
+   
+    table.stats-table thead tr { display: none; }
     .navbar .links {
         display: none;
         order: 3;
