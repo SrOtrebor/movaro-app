@@ -179,11 +179,14 @@ hr { border: none; border-top: 1px solid var(--color-borde-suave); margin: 25px 
 /* --- CÓDIGO RESPONSIVO (INCLUYENDO NAVBAR) --- */
 @media (max-width: 900px) {
     .navbar {
-        flex-wrap: wrap;
-        /* Esta línea es la que empuja los elementos a los costados */
-        justify-content: space-between; 
-        align-items: center;
+        /* ESTA ES LA PARTE IMPORTANTE */
+        display: flex;
+        flex-direction: row; /* Aseguramos que sea una fila */
+        justify-content: space-between; /* ¡Esto empuja todo a los costados! */
+        align-items: center; /* Centra verticalmente */
+        flex-wrap: wrap; /* Permite que los links salten abajo */
     }
+    /* ... (el resto de tus estilos para móvil) ... */
 .hamburger {
 display: block;
 color: var(--color-blanco);
