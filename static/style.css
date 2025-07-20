@@ -172,4 +172,34 @@ hr { border: none; border-top: 1px solid var(--color-borde-suave); margin: 25px 
         padding: 20px;
         width: 90%;
     }
+
+    /* --- Estilos para hacer la tabla de Super Admin responsiva --- */
+    .stats-table thead {
+        /* Ocultamos los encabezados en móvil, porque ahora van en las tarjetas */
+        display: none;
+    }
+    .stats-table, .stats-table tbody, .stats-table tr, .stats-table td {
+        display: block; /* Hacemos que cada elemento se comporte como un bloque */
+        width: 100%;
+    }
+    .stats-table tr {
+        margin-bottom: 15px; /* Espacio entre cada "tarjeta" de usuario */
+        background-color: var(--color-blanco);
+        border: 1px solid var(--color-borde-suave);
+        border-radius: 5px;
+    }
+    .stats-table td {
+        text-align: right; /* Alineamos el dato a la derecha */
+        position: relative;
+        padding-left: 50%; /* Dejamos espacio para la etiqueta */
+        border-bottom: 1px solid var(--color-borde-suave);
+    }
+    .stats-table td:before {
+        /* Usamos el 'data-label' que pusimos en el HTML para crear la etiqueta */
+        content: attr(data-label);
+        position: absolute;
+        left: 10px;
+        font-weight: bold;
+        text-align: left;
+    }
 }
