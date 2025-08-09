@@ -409,3 +409,45 @@ img { max-width: 100%; height: auto; } /* Regla de oro para imágenes responsiva
         padding: 5px 8px;
     }
 }
+
+/* ======================================= */
+/* ESTILOS ESPECÍFICOS PARA DETALLE_CLIENTE.HTML */
+/* ======================================= */
+
+.detalle-cliente-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.avatar-img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--color-borde);
+    box-shadow: var(--sombra-suave);
+}
+
+.turno-card {
+    margin-bottom: 25px;
+}
+
+.turno-media-container {
+    display: flex;
+    gap: 25px;
+    align-items: flex-start;
+}
+
+.turno-foto-container {
+    flex-basis: 200px; /* Ancho base para la foto */
+    flex-shrink: 0;
+}
+
+.turno-foto {
+    border-radius: var(--border-radius);
+    width: 100%;
+}
+
+.turno-form-container {
+    flex-grow: 1; /* Ocupa el espacio restante */
+}
