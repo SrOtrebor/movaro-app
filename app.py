@@ -1,7 +1,7 @@
-import time
 import sqlite3
 import calendar
 import os
+import time
 from flask import Flask, render_template, request, redirect, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
@@ -10,10 +10,13 @@ from collections import Counter
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax' # <-- AGREGÁ ESTA LÍNEA
+app.secret_key = 'mi_clave_secreta_super_dificil_v2' # Esta línea ya la tenés
 app.secret_key = 'mi_clave_secreta_super_dificil_v2'
 DATABASE = 'agenda.db'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-TOLERANCIA_MINUTOS = 10
+TOLERANCIA_MINUTOS = 10 
+DIAS_INACTIVIDAD = 30
 
 # --- CONFIGURACIÓN DE ADMIN ---
 ADMIN_EMAIL = "nailflow.ad@gmail.com"
@@ -27,6 +30,42 @@ def admin_required(f):
             return redirect('/')
         return f(*args, **kwargs)
     return decorated_function
+
+@app.route('/configuracion_publica', methods=['GET', 'POST'])
+def configuracion_publica():
+    if 'usuario_id' not in session: return redirect('/login')
+    
+    usuario_id_actual = session['usuario_id']
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+        # Obtenemos y limpiamos la URL que mandó la usuaria
+        url_salon = request.form['url_salon'].lower().strip()
+        # Aquí se podrían agregar más validaciones (sin espacios, caracteres especiales, etc.)
+        
+        try:
+            # Intentamos guardar la nueva URL en la base de datos
+            cursor.execute("UPDATE usuarios SET url_salon = ? WHERE id = ?",
+                           (url_salon, usuario_id_actual))
+            conn.commit()
+            flash("¡URL pública guardada con éxito!", "success")
+        except sqlite3.IntegrityError:
+            # Este error salta si la URL ya está en uso (porque la definimos como UNIQUE)
+            flash("Error: Esa dirección ya está en uso por otro salón. Por favor, elegí otra.", "error")
+        
+        conn.close()
+        return redirect('/configuracion_publica')
+
+    # Si no es POST, simplemente mostramos la URL que ya está guardada
+    cursor.execute("SELECT url_salon FROM usuarios WHERE id = ?", (usuario_id_actual,))
+    usuario = cursor.fetchone()
+    conn.close()
+    
+    url_actual = usuario['url_salon'] if (usuario and usuario['url_salon']) else ""
+    
+    return render_template('configuracion_publica.html', url_actual=url_actual)
 
 # --- RUTAS PRINCIPALES Y DE AUTENTICACIÓN ---
 @app.route('/')
@@ -42,31 +81,21 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        
         conn = sqlite3.connect(DATABASE)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        
         cursor.execute("SELECT * FROM usuarios WHERE email = ?", (email,))
         usuario = cursor.fetchone()
         conn.close()
-        
         if usuario and check_password_hash(usuario['password_hash'], password):
-            # Verificación de estado (pendiente, suspendido)
             if usuario['estado'] != 'activo' and usuario['email'] != ADMIN_EMAIL:
                 flash(f"Tu cuenta se encuentra en estado '{usuario['estado']}'. Contactá al administrador.", "error")
                 return redirect('/login')
-
-            # --- NUEVA VERIFICACIÓN DE VENCIMIENTO ---
-            if usuario['fecha_vencimiento']:
-                # Convertimos el texto de la fecha a un objeto de fecha real
+            if usuario['fecha_vencimiento'] and usuario['email'] != ADMIN_EMAIL:
                 fecha_vencimiento = datetime.strptime(usuario['fecha_vencimiento'], '%Y-%m-%d').date()
-                # Comparamos con la fecha actual
                 if fecha_vencimiento < datetime.now().date():
                     flash("Tu suscripción ha vencido. Por favor, contactá al administrador para renovarla.", "error")
                     return redirect('/login')
-            # --- FIN DE LA VERIFICACIÓN ---
-
             session['usuario_id'] = usuario['id']
             session['nombre_salon'] = usuario['nombre_salon']
             session['usuario_email'] = usuario['email']
@@ -74,7 +103,6 @@ def login():
         else:
             flash("Email o contraseña incorrectos.", "error")
             return redirect('/login')
-            
     return render_template('login.html')
 
 @app.route('/registro', methods=['GET', 'POST'])
@@ -107,11 +135,10 @@ def logout():
     flash("Has cerrado la sesión.", "success")
     return redirect('/login')
 
-# --- PANEL DE CONTROL DE USUARIO ---
+# --- PANEL DE CONTROL DE USUARIO (COMPLETO Y CORRECTO) ---
 @app.route('/panel', methods=['GET', 'POST'])
 def panel_control():
     if 'usuario_id' not in session: return redirect('/login')
-    
     usuario_id_actual = session['usuario_id']
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
@@ -119,21 +146,18 @@ def panel_control():
 
     if request.method == 'POST':
         nueva_meta = request.form['meta_fidelizacion']
-        cursor.execute("UPDATE usuarios SET meta_fidelizacion = ? WHERE id = ?", 
-                       (nueva_meta, usuario_id_actual))
+        cursor.execute("UPDATE usuarios SET meta_fidelizacion = ? WHERE id = ?", (nueva_meta, usuario_id_actual))
         conn.commit()
         flash("¡Configuración de fidelización guardada!", "success")
         conn.close()
         return redirect('/panel')
 
-    # --- LÓGICA GET: Preparamos TODOS los datos para el panel ---
+    # --- LÓGICA GET COMPLETA PARA MOSTRAR TODO ---
     
-    # 1. Obtenemos la configuración y datos del usuario
     cursor.execute("SELECT * FROM usuarios WHERE id = ?", (usuario_id_actual,))
     usuario = cursor.fetchone()
     meta_fidelizacion = int(usuario['meta_fidelizacion']) if usuario and usuario['meta_fidelizacion'] else 5
-    
-    # 2. Lógica del Mini-Calendario
+
     hoy = datetime.now()
     ano, mes = hoy.year, hoy.month
     cal = calendar.Calendar()
@@ -146,7 +170,6 @@ def panel_control():
     turnos_del_mes = cursor.fetchall()
     dias_con_turnos = {datetime.strptime(turno['fecha'], '%Y-%m-%d').day for turno in turnos_del_mes}
     
-    # 3. Lógica de Alertas
     todos_mis_clientes = cursor.execute("SELECT * FROM clientes WHERE usuario_id = ?", (usuario_id_actual,)).fetchall()
     
     # Alerta de Cumpleaños
@@ -163,8 +186,7 @@ def panel_control():
     manana = hoy + timedelta(days=1)
     manana_str = manana.strftime('%Y-%m-%d')
     turnos_manana_db = cursor.execute("SELECT t.*, c.nombre, c.apellido, c.telefono FROM turnos t JOIN clientes c ON t.cliente_id = c.id WHERE t.usuario_id = ? AND t.fecha = ?", (usuario_id_actual, manana_str)).fetchall()
-    
-    turnos_manana = [] 
+    turnos_manana = []
     for turno in turnos_manana_db:
         turno_dict = dict(turno)
         turno_dict['cliente_nombre'] = f"{turno['nombre']} {turno['apellido']}"
@@ -184,66 +206,53 @@ def panel_control():
             clienta_dict['telefono_wa'] = "549" + telefono_local if len(telefono_local) >= 10 else telefono_local
             clientes_inactivos.append(clienta_dict)
 
-    # Alerta de Fidelización
+    # Alerta de Fidelización (CON TELÉFONO CORREGIDO)
     conteo_turnos_por_cliente = {row['cliente_id']: row['total_turnos'] for row in cursor.execute("SELECT cliente_id, COUNT(*) as total_turnos FROM turnos WHERE usuario_id = ? GROUP BY cliente_id", (usuario_id_actual,)).fetchall()}
     clientes_a_premiar = []
     for clienta in todos_mis_clientes:
         total_turnos = conteo_turnos_por_cliente.get(clienta['id'], 0)
         premios_recibidos = clienta['premios_recibidos']
-        if total_turnos > 0 and meta_fidelizacion > 0:
-            premios_merecidos = total_turnos // meta_fidelizacion
-            if premios_merecidos > premios_recibidos:
-                clienta_dict = dict(clienta)
-                clienta_dict['total_turnos'] = total_turnos
-                telefono_local = (clienta['telefono'] or '').strip()
-                clienta_dict['telefono_wa'] = "549" + telefono_local if len(telefono_local) >= 10 else telefono_local
-                clientes_a_premiar.append(clienta_dict)
+        if total_turnos > 0 and meta_fidelizacion > 0 and (total_turnos // meta_fidelizacion) > premios_recibidos:
+            clienta_dict = dict(clienta)
+            clienta_dict['total_turnos'] = total_turnos
+            telefono_local = (clienta['telefono'] or '').strip()
+            clienta_dict['telefono_wa'] = "549" + telefono_local if len(telefono_local) >= 10 else telefono_local
+            clientes_a_premiar.append(clienta_dict)
 
-    # Alerta de Vencimiento de Suscripción (LÓGICA INTEGRADA)
+    # Alerta de Vencimiento de Suscripción
     alerta_vencimiento = None
     if usuario and usuario['fecha_vencimiento']:
         hoy_date = hoy.date()
         fecha_vencimiento = datetime.strptime(usuario['fecha_vencimiento'], '%Y-%m-%d').date()
         dias_restantes = (fecha_vencimiento - hoy_date).days
-        if 0 <= dias_restantes <= 5:
-            if dias_restantes == 0:
-                mensaje = "¡Atención! Tu suscripción vence hoy."
-            elif dias_restantes == 1:
-                mensaje = f"¡Atención! Tu suscripción vence en 1 día."
-            else:
-                mensaje = f"¡Atención! Tu suscripción vence en {dias_restantes} días."
+        if 0 <= dias_restantes <= 7:
+            mensaje = "¡Tu suscripción vence hoy!" if dias_restantes == 0 else f"¡Atención! Tu suscripción vence en {dias_restantes} día(s)."
             alerta_vencimiento = mensaje
+
+    clientes_para_modal = todos_mis_clientes
+    servicios_para_modal = cursor.execute("SELECT * FROM servicios WHERE usuario_id = ?", (usuario_id_actual,)).fetchall()
     
     conn.close()
             
     return render_template('panel.html', 
                            meta_actual=meta_fidelizacion,
-                           dias_del_mes=dias_del_mes,
-                           nombre_mes=nombre_mes_actual,
-                           ano=ano,
-                           dias_con_turnos=dias_con_turnos,
-                           cumpleaneras=cumpleaneras,
-                           turnos_manana=turnos_manana,
-                           clientes_inactivos=clientes_inactivos,
-                           clientes_a_premiar=clientes_a_premiar,
-                           alerta_vencimiento=alerta_vencimiento)
-
+                           dias_del_mes=dias_del_mes, nombre_mes=nombre_mes_actual, ano=ano, mes=mes,
+                           dias_con_turnos=dias_con_turnos, cumpleaneras=cumpleaneras,
+                           turnos_manana=turnos_manana, clientes_inactivos=clientes_inactivos,
+                           clientes_a_premiar=clientes_a_premiar, alerta_vencimiento=alerta_vencimiento,
+                           clientes=clientes_para_modal, servicios=servicios_para_modal,
+                           fecha_hoy=hoy)
 @app.route('/premiar_cliente', methods=['POST'])
 def premiar_cliente():
     if 'usuario_id' not in session: return redirect('/login')
-
     cliente_id = request.form['cliente_id']
     usuario_id_actual = session['usuario_id']
-
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
-    # Le sumamos 1 a la cuenta de premios recibidos de ese cliente
-    cursor.execute("UPDATE clientes SET premios_recibidos = premios_recibidos + 1 WHERE id = ? AND usuario_id = ?",
-                   (cliente_id, usuario_id_actual))
+    cursor.execute("UPDATE clientes SET premios_recibidos = premios_recibidos + 1 WHERE id = ? AND usuario_id = ?", (cliente_id, usuario_id_actual))
     conn.commit()
     conn.close()
-
-    flash("¡Cliente marcado como premiado con éxito!", "success")
+    flash("¡Cliente marcado como premiado!", "success")
     return redirect('/panel')
 
 # --- RUTAS DE SUPER ADMIN ---
@@ -281,10 +290,15 @@ def borrar_usuario():
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
     cursor.execute("SELECT foto_path FROM turnos WHERE usuario_id = ? AND foto_path IS NOT NULL", (usuario_id_a_borrar,))
-    fotos_a_borrar = cursor.fetchall()
-    for foto in fotos_a_borrar:
+    fotos_turnos = cursor.fetchall()
+    for foto in fotos_turnos:
         try: os.remove(os.path.join(app.config['UPLOAD_FOLDER'], foto[0]))
-        except OSError: pass
+        except (OSError, TypeError): pass
+    cursor.execute("SELECT avatar_path FROM clientes WHERE usuario_id = ? AND avatar_path IS NOT NULL", (usuario_id_a_borrar,))
+    fotos_avatares = cursor.fetchall()
+    for avatar in fotos_avatares:
+        try: os.remove(os.path.join(app.config['UPLOAD_FOLDER'], avatar[0]))
+        except (OSError, TypeError): pass
     cursor.execute("DELETE FROM turnos WHERE usuario_id = ?", (usuario_id_a_borrar,))
     cursor.execute("DELETE FROM servicios WHERE usuario_id = ?", (usuario_id_a_borrar,))
     cursor.execute("DELETE FROM clientes WHERE usuario_id = ?", (usuario_id_a_borrar,))
@@ -316,8 +330,7 @@ def mostrar_formulario_reset(usuario_id):
     cursor.execute("SELECT * FROM usuarios WHERE id = ?", (usuario_id,))
     usuario = cursor.fetchone()
     conn.close()
-    if usuario:
-        return render_template('resetear_password.html', usuario=usuario)
+    if usuario: return render_template('resetear_password.html', usuario=usuario)
     return redirect('/superadmin')
 
 @app.route('/superadmin/resetear', methods=['POST'])
@@ -337,7 +350,7 @@ def procesar_reseteo():
     flash("¡Contraseña actualizada con éxito!", "success")
     return redirect('/superadmin')
 
-# --- RUTAS DE GESTIÓN ---
+# --- RUTAS DE GESTIÓN (Clientes, Servicios, Agenda) ---
 @app.route('/clientes')
 def ver_clientes():
     if 'usuario_id' not in session: return redirect('/login')
@@ -451,15 +464,53 @@ def borrar_servicio(servicio_id):
     flash("Servicio eliminado.")
     return redirect('/servicios')
 
+@app.route('/horarios', methods=['GET', 'POST'])
+def gestionar_horarios():
+    if 'usuario_id' not in session: return redirect('/login')
+    
+    usuario_id_actual = session['usuario_id']
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+        for i in range(7): # 0 a 6 para Lunes a Domingo
+            trabaja = 'trabaja_'+str(i) in request.form
+            hora_inicio = request.form.get('inicio_'+str(i))
+            hora_fin = request.form.get('fin_'+str(i))
+            
+            # El comando 'REPLACE' es como 'INSERT OR UPDATE'
+            cursor.execute("""
+                REPLACE INTO horarios (usuario_id, dia_semana, trabaja, hora_inicio, hora_fin)
+                VALUES (?, ?, ?, ?, ?)
+            """, (usuario_id_actual, i, trabaja, hora_inicio, hora_fin))
+        
+        conn.commit()
+        flash("¡Horarios guardados con éxito!", "success")
+        conn.close()
+        return redirect('/horarios')
+
+    # Lógica GET para mostrar los horarios guardados
+    cursor.execute("SELECT * FROM horarios WHERE usuario_id = ?", (usuario_id_actual,))
+    horarios_guardados = {h['dia_semana']: h for h in cursor.fetchall()}
+    conn.close()
+    
+    dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+    
+    return render_template('horarios.html', dias_semana=dias_semana, horarios=horarios_guardados)
+
+
 @app.route('/calendario/<int:ano>/<int:mes>')
 def ver_calendario(ano, mes):
     if 'usuario_id' not in session: return redirect('/login')
     
-    usuario_id_actual = session['usuario_id']
+    # Recuperamos los datos del formulario si existen y los convertimos a un formato limpio
+    datos_viejos = session.pop('form_data', None)
     
+    usuario_id_actual = session['usuario_id']
+    hoy = datetime.now()
     cal = calendar.Calendar()
     dias_del_mes = cal.monthdayscalendar(ano, mes)
-    
     nombres_meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
     nombre_mes_actual = nombres_meses[mes - 1]
 
@@ -471,7 +522,6 @@ def ver_calendario(ano, mes):
     cursor.execute("SELECT fecha, hora FROM turnos WHERE usuario_id = ? AND strftime('%Y-%m', fecha) = ? ORDER BY hora", (usuario_id_actual, mes_actual_str))
     turnos_del_mes = cursor.fetchall()
     
-    # Creamos el diccionario que agrupa las horas de los turnos por día
     turnos_por_dia = {}
     for turno in turnos_del_mes:
         dia = datetime.strptime(turno['fecha'], '%Y-%m-%d').day
@@ -490,10 +540,18 @@ def ver_calendario(ano, mes):
     conn.close()
     
     return render_template('calendario.html', 
-                           dias_del_mes=dias_del_mes, nombre_mes=nombre_mes_actual,
-                           ano=ano, mes=mes, turnos_por_dia=turnos_por_dia,
-                           clientes=clientes, servicios=servicios_propios,
-                           mes_anterior=mes_anterior_dt, mes_siguiente=mes_siguiente_dt)
+                           dias_del_mes=dias_del_mes,
+                           nombre_mes=nombre_mes_actual,
+                           ano=ano,
+                           mes=mes,
+                           turnos_por_dia=turnos_por_dia,
+                           clientes=clientes,
+                           servicios=servicios_propios,
+                           mes_anterior=mes_anterior_dt,
+                           mes_siguiente=mes_siguiente_dt,
+                           fecha_hoy=hoy,
+                           datos_viejos=datos_viejos)
+
 @app.route('/calendario')
 def calendario_redirect():
     hoy = datetime.now()
@@ -502,50 +560,98 @@ def calendario_redirect():
 @app.route('/dia/<int:ano>/<int:mes>/<int:dia>')
 def ver_detalle_dia(ano, mes, dia):
     if 'usuario_id' not in session: return redirect('/login')
+    
     usuario_id_actual = session['usuario_id']
     fecha_seleccionada = f"{ano}-{mes:02d}-{dia:02d}"
+
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    cursor.execute("SELECT t.id, t.hora, t.servicio_nombre, c.nombre, c.apellido FROM turnos t JOIN clientes c ON t.cliente_id = c.id WHERE t.usuario_id = ? AND t.fecha = ? ORDER BY t.hora", (usuario_id_actual, fecha_seleccionada))
+
+    cursor.execute("""
+        SELECT t.id, t.hora, t.servicio_nombre, c.nombre, c.apellido 
+        FROM turnos t
+        JOIN clientes c ON t.cliente_id = c.id
+        WHERE t.usuario_id = ? AND t.fecha = ?
+        ORDER BY t.hora
+    """, (usuario_id_actual, fecha_seleccionada))
     turnos_del_dia = cursor.fetchall()
     conn.close()
-    return render_template('detalle_dia.html', turnos=turnos_del_dia, fecha=fecha_seleccionada)
 
+    return render_template('detalle_dia.html', 
+                           turnos=turnos_del_dia,
+                           fecha=fecha_seleccionada)
 @app.route('/turno/borrar', methods=['POST'])
 def borrar_turno():
     if 'usuario_id' not in session: return redirect('/login')
+
     turno_id = request.form['turno_id']
     fecha_turno = request.form['fecha_turno']
     usuario_id_actual = session['usuario_id']
+
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM turnos WHERE id = ? AND usuario_id = ?", (turno_id, usuario_id_actual))
     conn.commit()
     conn.close()
+
     flash("Turno cancelado con éxito.", "success")
+    
     fecha_dt = datetime.strptime(fecha_turno, '%Y-%m-%d')
     cache_buster = int(time.time())
     return redirect(f'/calendario/{fecha_dt.year}/{fecha_dt.month}?v={cache_buster}')
-
 @app.route('/agregar_turno', methods=['POST'])
 def agregar_turno():
     if 'usuario_id' not in session: return redirect('/login')
+    
     usuario_id_actual = session['usuario_id']
-    cliente_id = int(request.form['cliente_id'])
-    servicio_id = int(request.form['servicio_id'])
     fecha_str = request.form['fecha']
     hora_str = request.form['hora']
+    cliente_id = int(request.form['cliente_id'])
+    servicio_id = int(request.form['servicio_id'])
+    
+    # URL a la que volveremos en caso de éxito o error
+    redir_url = f'/calendario/{fecha_str[:4]}/{int(fecha_str[5:7])}'
+
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
+
+    # --- NUEVA VALIDACIÓN DE HORARIO LABORAL ---
+    try:
+        fecha_dt = datetime.strptime(fecha_str, '%Y-%m-%d')
+        dia_semana = fecha_dt.weekday() # Lunes=0, Martes=1, ...
+
+        cursor.execute("SELECT trabaja, hora_inicio, hora_fin FROM horarios WHERE usuario_id = ? AND dia_semana = ?", (usuario_id_actual, dia_semana))
+        horario_laboral = cursor.fetchone()
+
+        if not horario_laboral or not horario_laboral['trabaja']:
+            flash("Error: El día seleccionado está configurado como no laborable.", "error")
+            session['form_data'] = request.form.to_dict()
+            conn.close()
+            return redirect(redir_url)
+        
+        if hora_str < horario_laboral['hora_inicio'] or hora_str >= horario_laboral['hora_fin']:
+            flash(f"Error: El horario está fuera del rango laboral ({horario_laboral['hora_inicio']} - {horario_laboral['hora_fin']}).", "error")
+            session['form_data'] = request.form.to_dict()
+            conn.close()
+            return redirect(redir_url)
+    except (ValueError, TypeError):
+        flash("Error: Fecha u hora inválida.", "error")
+        session['form_data'] = request.form.to_dict()
+        conn.close()
+        return redirect(redir_url)
+    # --- FIN DE LA NUEVA VALIDACIÓN ---
+
+    # Obtenemos la duración del servicio (como antes)
     servicio_seleccionado = cursor.execute("SELECT nombre, duracion FROM servicios WHERE id = ? AND usuario_id = ?", (servicio_id, usuario_id_actual)).fetchone()
     if not servicio_seleccionado:
         flash("Error: Servicio no válido.", "error")
         conn.close()
-        return redirect(f'/calendario/{fecha_str[:4]}/{int(fecha_str[5:7])}')
+        return redirect(redir_url)
+
+    # Verificación de superposición (como antes)
     duracion_servicio = servicio_seleccionado['duracion']
-    nombre_servicio = servicio_seleccionado['nombre']
     inicio_nuevo_turno = datetime.strptime(f"{fecha_str} {hora_str}", '%Y-%m-%d %H:%M')
     fin_nuevo_turno = inicio_nuevo_turno + timedelta(minutes=duracion_servicio + TOLERANCIA_MINUTOS)
     turnos_existentes = cursor.execute("SELECT t.hora, s.duracion FROM turnos t JOIN servicios s ON t.servicio_id = s.id WHERE t.usuario_id = ? AND t.fecha = ?", (usuario_id_actual, fecha_str)).fetchall()
@@ -554,14 +660,19 @@ def agregar_turno():
         fin_existente = inicio_existente + timedelta(minutes=turno_existente['duracion'] + TOLERANCIA_MINUTOS)
         if max(inicio_nuevo_turno, inicio_existente) < min(fin_nuevo_turno, fin_existente):
             flash(f"Error: El horario se pisa con el turno de las {turno_existente['hora']}.", "error")
+            session['form_data'] = request.form.to_dict()
             conn.close()
-            return redirect(f'/calendario/{fecha_str[:4]}/{int(fecha_str[5:7])}')
-    cursor.execute("INSERT INTO turnos (usuario_id, cliente_id, servicio_id, servicio_nombre, fecha, hora) VALUES (?, ?, ?, ?, ?, ?)", (usuario_id_actual, cliente_id, servicio_id, nombre_servicio, fecha_str, hora_str))
+            return redirect(redir_url)
+
+    # Si todo está bien, insertamos el turno
+    cursor.execute(
+        "INSERT INTO turnos (usuario_id, cliente_id, servicio_id, servicio_nombre, fecha, hora) VALUES (?, ?, ?, ?, ?, ?)",
+        (usuario_id_actual, cliente_id, servicio_id, servicio_seleccionado['nombre'], fecha_str, hora_str)
+    )
     conn.commit()
     conn.close()
     flash("¡Turno agendado con éxito!", "success")
-    return redirect(f'/calendario/{fecha_str[:4]}/{int(fecha_str[5:7])}')
-
+    return redirect(redir_url)
 @app.route('/estadisticas')
 def ver_estadisticas():
     if 'usuario_id' not in session: return redirect('/login')

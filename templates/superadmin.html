@@ -16,7 +16,7 @@
     <hr>
 
     <h2>Listado de Usuarios</h2>
-    <table class="stats-table" width="100%">
+    <table class="stats-table tabla-responsiva" width="100%">
         <thead>
             <tr>
                 <th>ID</th>
@@ -61,6 +61,9 @@
                                 <button type="submit" class="boton-accion boton-activar">Reactivar</button>
                             </form>
                         {% endif %}
+                        
+                        <a href="/superadmin/resetear/{{ usuario.id }}" class="boton-accion" style="background-color: #6c757d; border-radius: 5px; color: white; font-weight: bold;">Reset Pass</a>
+
                         <form action="/superadmin/borrar_usuario" method="post" style="margin:0;" onsubmit="return confirm('¿ESTÁS SEGURO? Esta acción es irreversible y borrará al usuario y TODOS sus datos (clientes, turnos, fotos).');">
                             <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
                             <button type="submit" class="boton-accion boton-eliminar">Borrar</button>

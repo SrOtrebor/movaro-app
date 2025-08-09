@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendar Turno en {{ salon.nombre_salon }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container" style="max-width: 800px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" height="60">
+        </div>
+        
+        <div class="form-section">
+            <h1>Bienvenida/o a {{ salon.nombre_salon }}</h1>
+            <p>Estos son nuestros servicios. ¡Pronto podrás ver la disponibilidad y agendar tu turno desde aquí!</p>
+            <hr>
+            
+            <h2>Nuestros Servicios</h2>
+            {% if servicios %}
+                <table class="stats-table">
+                    <tbody>
+                        {% for servicio in servicios %}
+                        <tr>
+                            <td><strong>{{ servicio.nombre }}</strong></td>
+                            <td>{{ servicio.duracion }} minutos</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>Este salón aún no ha cargado sus servicios.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

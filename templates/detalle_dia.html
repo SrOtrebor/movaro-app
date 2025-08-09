@@ -1,39 +1,44 @@
 {% extends "base.html" %}
 
-{% block title %}Detalle del Día{% endblock %}
+{% block title %}Detalle del Día {{ fecha }}{% endblock %}
 
 {% block content %}
-    <h1>Detalle de Turnos - {{ fecha }}</h1>
-    <a href="/calendario/{{ fecha.split('-')[0] }}/{{ fecha.split('-')[1]|int }}">← Volver al Calendario</a>
+    <h2>Turnos del día: {{ fecha }}</h2>
+    <a href="/calendario">← Volver al Calendario</a>
     <hr>
 
     {% if turnos %}
-        <table class="stats-table" width="100%">
-            <thead>
-                <tr>
-                    <th>Hora</th>
-                    <th>Cliente</th>
-                    <th>Servicio</th>
-                    <th>Acción</th> </tr>
-            </thead>
-            <tbody>
-                {% for turno in turnos %}
+        <div class="card">
+            <table class="stats-table tabla-responsiva">
+                <thead>
                     <tr>
-                        <td>{{ turno.hora }}</td>
-                        <td>{{ turno.nombre }} {{ turno.apellido }}</td>
-                        <td>{{ turno.servicio_nombre }}</td>
-                        <td>
+                        <th>Hora</th>
+                        <th>Cliente</th>
+                        <th>Servicio</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for turno in turnos %}
+                    <tr>
+                        <td data-label="Hora">{{ turno.hora }}</td>
+                        <td data-label="Cliente">{{ turno.nombre }} {{ turno.apellido }}</td>
+                        <td data-label="Servicio">{{ turno.servicio_nombre }}</td>
+                        <td data-label="Acción">
                             <form action="/turno/borrar" method="post" onsubmit="return confirm('¿Estás segura de que querés cancelar este turno?');">
                                 <input type="hidden" name="turno_id" value="{{ turno.id }}">
                                 <input type="hidden" name="fecha_turno" value="{{ fecha }}">
-                                <button type="submit" style="background:none; border:none; color:red; cursor:pointer; padding:0; font-size: 1em;">Cancelar</button>
+                                <button type="submit" class="boton-accion" style="background-color: #dc3545;">Cancelar Turno</button>
                             </form>
                         </td>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% else %}
-        <p>No hay turnos agendados para este día.</p>
+        <div class="card">
+            <p>No hay turnos agendados para este día.</p>
+        </div>
     {% endif %}
 {% endblock %}

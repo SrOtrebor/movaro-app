@@ -1,84 +1,75 @@
 {% extends "base.html" %}
 
-{% block title %}Detalle de Cliente{% endblock %}
+{% block title %}Detalle de {{ clienta.nombre }} {{ clienta.apellido }}{% endblock %}
 
 {% block content %}
-<style>
-    .perfil-container {
-        display: flex;
-        align-items: flex-start;
-        gap: 30px;
-        margin-bottom: 20px;
-    }
-    .avatar-container img {
-        width: 150px;
-        height: 150px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 3px solid #eee;
-    }
-    .info-container {
-        flex-grow: 1;
-    }
-</style>
-
-<a href="/clientes">← Volver al listado</a>
+<a href="/clientes">← Volver al listado de clientes</a>
 <hr>
 
-<div class="perfil-container">
-    <div class="avatar-container">
-        {% if clienta.avatar_path %}
-            <img src="{{ url_for('static', filename='uploads/' + clienta.avatar_path) }}" alt="Avatar">
-        {% else %}
-            <img src="{{ url_for('static', filename='placeholder.png') }}" alt="Avatar por defecto">
-        {% endif %}
-        
-        <form action="/subir_avatar" method="post" enctype="multipart/form-data" style="margin-top: 10px;">
-            <input type="hidden" name="cliente_id" value="{{ clienta.id }}">
-            <input type="file" name="avatar" accept="image/png, image/jpeg" required>
-            <button type="submit" style="margin-top: 5px;">Cambiar Foto</button>
-        </form>
+<div class="layout-container">
+    <div class="layout-col-lateral">
+        <div class="card">
+            <div style="text-align: center; margin-bottom: 20px;">
+                {% if clienta.avatar_path %}
+                    <img src="{{ url_for('static', filename='uploads/' + clienta.avatar_path) }}" alt="Avatar" style="width:120px; height:120px; border-radius:50%; object-fit:cover;">
+                {% else %}
+                    <img src="{{ url_for('static', filename='placeholder.png') }}" alt="Avatar por defecto" style="width:120px; height:120px; border-radius:50%; object-fit:cover;">
+                {% endif %}
+            </div>
+            <h2>{{ clienta.nombre }} {{ clienta.apellido }}</h2>
+            <p><strong>Teléfono:</strong> {{ clienta.telefono or 'No especificado' }}</p>
+            <p><strong>Cumpleaños:</strong> {{ clienta.cumpleanos or 'No especificado' }}</p>
+
+            <hr style="margin: 20px 0;">
+
+            <form action="/subir_avatar" method="post" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="avatar">Cambiar foto de perfil:</label>
+                    <input type="hidden" name="cliente_id" value="{{ clienta.id }}">
+                    <input type="file" id="avatar" name="avatar" accept="image/*" required>
+                </div>
+                <button type="submit" style="width:100%;">Subir Foto</button>
+            </form>
+        </div>
     </div>
 
-    <div class="info-container">
-        <h1>{{ clienta.nombre }} {{ clienta.apellido }}</h1>
-        <p><strong>Teléfono:</strong> {{ clienta.telefono }}</p>
-        <p><strong>Fecha de Cumpleaños:</strong> {{ clienta.cumpleanos }}</p>
+    <div class="layout-col-principal">
+        <h2>Historial de Turnos</h2>
+        {% if turnos %}
+            {% for turno in turnos %}
+                <div class="card" style="margin-bottom: 20px;">
+                    <h4>Turno del {{ turno.fecha }} a las {{ turno.hora }}</h4>
+                    <p><strong>Servicio:</strong> {{ turno.servicio_nombre }}</p>
+                    
+                    <div style="display:flex; gap: 20px; align-items: flex-start;">
+                        {% if turno.foto_path %}
+                            <div>
+                                <p><strong>Foto del trabajo:</strong></p>
+                                <img src="{{ url_for('static', filename='uploads/' + turno.foto_path) }}" alt="Foto del trabajo" style="border-radius: var(--border-radius);">
+                            </div>
+                        {% endif %}
+                        
+                        <div style="flex-grow: 1;">
+                            <form action="/subir_foto" method="post" enctype="multipart/form-data">
+                                <div class="form-group">
+                                    <label for="foto-{{ turno.id }}">
+                                        {% if turno.foto_path %}Cambiar foto{% else %}Subir foto{% endif %} del trabajo:
+                                    </label>
+                                    <input type="hidden" name="turno_id" value="{{ turno.id }}">
+                                    <input type="hidden" name="cliente_id" value="{{ clienta.id }}">
+                                    <input type="file" id="foto-{{ turno.id }}" name="foto" accept="image/*" required>
+                                </div>
+                                <button type="submit">Guardar</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="card">
+                <p>Este cliente aún no tiene turnos registrados.</p>
+            </div>
+        {% endif %}
     </div>
 </div>
-
-<hr>
-<h2>Línea de Tiempo Fotográfica</h2>
-    
-{% if turnos %}
-    {% for turno in turnos %}
-        <div style="border: 1px solid #ccc; padding: 15px; margin-bottom: 15px; border-radius: 5px;">
-            <h4>Turno del {{ turno.fecha }} a las {{ turno.hora }}</h4>
-            <p><strong>Servicio:</strong> {{ turno.servicio_nombre }}</p>
-            
-            <div style="display:flex; gap: 20px; align-items: flex-start;">
-                <div>
-                    {% if turno.foto_path %}
-                        <p><strong>Foto del trabajo:</strong></p>
-                        <img src="{{ url_for('static', filename='uploads/' + turno.foto_path) }}" alt="Foto del trabajo" width="200">
-                    {% else %}
-                        <p><i>Este turno no tiene foto todavía.</i></p>
-                    {% endif %}
-                </div>
-                <div>
-                    <form action="/subir_foto" method="post" enctype="multipart/form-data">
-                        <input type="hidden" name="turno_id" value="{{ turno.id }}">
-                        <input type="hidden" name="cliente_id" value="{{ clienta.id }}">
-                        <label>Subir o cambiar foto:</label><br>
-                        <input type="file" name="foto" accept="image/png, image/jpeg" required>
-                        <button type="submit">Guardar Foto</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    {% endfor %}
-{% else %}
-    <p>Este Cliente aún no tiene turnos registrados.</p>
-{% endif %}
-
 {% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Mi Link Público{% endblock %}
+
+{% block content %}
+<h1>Mi Link Público para Agendar Turnos</h1>
+<p>
+    Configurá tu dirección web única que podrás compartir con tus Clientes.
+    Elegí un nombre corto y fácil de recordar (solo letras minúsculas, números y guiones).
+</p>
+<hr>
+
+<form action="/configuracion_publica" method="post" class="form-section" style="max-width: 600px;">
+    <div class="form-group">
+        <label for="url_salon">Tu URL será: <strong>{{ request.host_url }}agendar/</strong></label>
+        <input type="text" id="url_salon" name="url_salon" value="{{ url_actual }}" 
+               placeholder="ej-mi-salon-de-unas" required 
+               pattern="[a-z0-9-]+" 
+               title="Solo letras minúsculas, números y guiones.">
+    </div>
+    <button type="submit">Guardar URL</button>
+</form>
+
+{% if url_actual %}
+<hr>
+<h3>¡Link listo para compartir!</h3>
+<p>Tu link público es (todavía no funciona, lo crearemos en el próximo paso):</p>
+<p>
+    <a href="#">
+        <strong>{{ request.host_url }}agendar/{{ url_actual }}</strong>
+    </a>
+</p>
+{% endif %}
+
+{% endblock %}

@@ -1,92 +1,182 @@
 {% extends "base.html" %}
-
 {% block title %}Calendario de Turnos{% endblock %}
 
 {% block content %}
 
 <div class="calendario-header">
-    <div class="calendario-nav">
-        <a href="/calendario/{{ mes_anterior.year }}/{{ mes_anterior.month }}">‹ Mes Anterior</a>
-    </div>
+    <a class="boton-accion" href="/calendario/{{ mes_anterior.year }}/{{ mes_anterior.month }}">‹ Mes Anterior</a>
     <h2>{{ nombre_mes }} {{ ano }}</h2>
-    <div class="calendario-nav">
-        <a href="/calendario/{{ mes_siguiente.year }}/{{ mes_siguiente.month }}">Mes Siguiente ›</a>
-    </div>
+    <a class="boton-accion" href="/calendario/{{ mes_siguiente.year }}/{{ mes_siguiente.month }}">Mes Siguiente ›</a>
 </div>
 
-<div class="calendario-subnav">
+<div class="calendario-subnav" style="margin: 15px 0;">
     <a href="/panel">← Volver al Panel de Control</a>
 </div>
 
-<div class="calendario-container">
-    <div class="calendario-tabla-wrapper">
-        <table class="calendario-tabla">
-            <thead>
-                <tr>
-                    <th>Lunes</th><th>Martes</th><th>Miércoles</th><th>Jueves</th><th>Viernes</th><th>Sábado</th><th>Domingo</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for semana in dias_del_mes %}
-                    <tr>
-                        {% for dia in semana %}
-                            {% if dia == 0 %}
-                                <td class="dia-otro-mes"></td>
-                            {% else %}
-                                <td class="celda-dia {% if dia in turnos_por_dia %}dia-ocupado{% endif %}" onclick="window.location.href='/dia/{{ ano }}/{{ mes }}/{{ dia }}';">
-                                    <div class="dia-numero">{{ dia }}</div>
-                                    {% if dia in turnos_por_dia %}
-                                        <ul class="turnos-lista">
-                                        {% for hora in turnos_por_dia[dia] %}
-                                            <li>{{ hora }}</li>
-                                        {% endfor %}
-                                        </ul>
-                                    {% endif %}
-                                </td>
-                            {% endif %}
-                        {% endfor %}
-                    </tr>
+<div class="calendario-tabla-wrapper">
+    <table class="calendario-tabla">
+        <thead>
+            <tr>
+                <th>Lunes</th><th>Martes</th><th>Miércoles</th><th>Jueves</th><th>Viernes</th><th>Sábado</th><th>Domingo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for semana in dias_del_mes %}
+            <tr>
+                {% for dia in semana %}
+                    {% if dia == 0 %}
+                        <td class="dia-otro-mes"></td>
+                    {% else %}
+                        <td class="celda-dia {% if dia in turnos_por_dia %}dia-ocupado{% endif %}" 
+    data-fecha="{{ ano }}-{{ '%02d'|format(mes) }}-{{ '%02d'|format(dia) }}"
+    data-url-detalle="/dia/{{ ano }}/{{ mes }}/{{ dia }}">
+    
+    <div class="dia-numero">{{ dia }}</div>
+    
+    <button class="boton-agregar-turno">+</button>
+
+    {% if dia in turnos_por_dia %}
+    <ul class="turnos-lista">
+        {% for hora in turnos_por_dia[dia] %}
+            <li>{{ hora }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</td>
+                    {% endif %}
                 {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    <div class="formulario-turno">
-        <h3>Agendar Nuevo Turno</h3>
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% for category, message in messages %}
-                {% if category == 'error' %}
-                    <div class="alerta flash-{{ category }}">{{ message }}</div>
-                {% endif %}
+            </tr>
             {% endfor %}
-        {% endwith %}
+        </tbody>
+    </table>
+</div>
 
-        <form action="/agregar_turno" method="post">
-            <label for="cliente_id">Cliente:</label><br>
-            <select id="cliente_id" name="cliente_id" required style="width:100%; padding: 8px; margin-bottom: 10px;">
-                <option value="">Seleccionar cliente...</option>
-                {% for cliente in clientes %}
-                    <option value="{{ cliente.id }}">{{ cliente.nombre }} {{ cliente.apellido }}</option>
-                {% endfor %}
-            </select><br>
+<div id="modal-turno" class="modal-oculto">
+    <div class="modal-contenido">
+        <span class="modal-cerrar">&times;</span>
+<h3>Agendar Nuevo Turno</h3>
+<div id="error-container-modal"></div>
 
-            <label for="servicio_id">Servicio:</label><br>
-            <select id="servicio_id" name="servicio_id" required style="width:100%; padding: 8px; margin-bottom: 10px;">
-                <option value="">Seleccionar servicio...</option>
-                {% for servicio in servicios %}
-                    <option value="{{ servicio.id }}">{{ servicio.nombre }}</option>
-                {% endfor %}
-            </select><br>
-            
-            <label for="fecha">Fecha:</label><br>
-            <input type="date" id="fecha" name="fecha" required style="width:95%; padding: 8px; margin-bottom: 10px;"><br>
-            
-            <label for="hora">Hora:</label><br>
-            <input type="time" id="hora" name="hora" required style="width:95%; padding: 8px; margin-bottom: 10px;"><br><br>
+<form action="/agregar_turno" method="post" class="form-section" style="padding:0; box-shadow:none; border:0;">
+    
+    <div class="form-group">
+        <label for="cliente_id_modal">Cliente:</label>
+        <select id="cliente_id_modal" name="cliente_id" required>
+            <option value="">Seleccionar cliente...</option>
+            {% for cliente in clientes %}
+                <option value="{{ cliente.id }}">{{ cliente.nombre }} {{ cliente.apellido }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="servicio_id_modal">Servicio:</label>
+        <select id="servicio_id_modal" name="servicio_id" required>
+            <option value="">Seleccionar servicio...</option>
+            {% for servicio in servicios %}
+                 <option value="{{ servicio.id }}">{{ servicio.nombre }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="modal-fecha">Fecha:</label>
+        <input type="date" id="modal-fecha" name="fecha" required>
+    </div>
+    
+    <div class="form-group">
+        <label for="hora_modal">Hora:</label>
+        <input type="time" id="hora_modal" name="hora" required>
+    </div>
+    
+    <button type="submit" style="width: 100%;">Agendar Turno</button>
 
-            <button type="submit">Agendar Turno</button>
-        </form>
+</form>
     </div>
 </div>
+<div id="js-data" 
+     data-datos-viejos='{{ datos_viejos | tojson | safe }}'
+     data-error-flash="{{ get_flashed_messages(with_categories=['error']) | first }}">
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('modal-turno');
+    if (!modal) return;
+    
+    const spanCerrar = modal.querySelector('.modal-cerrar');
+    const campoFecha = modal.querySelector('#modal-fecha');
+    
+    // --- DETECTOR DE DISPOSITIVO ---
+    const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+    document.querySelectorAll('.celda-dia').forEach(celda => {
+        if (celda.classList.contains('dia-otro-mes')) return;
+
+        if (isMobile) {
+            // --- LÓGICA EXCLUSIVA PARA CELULARES ---
+            let pressTimer;
+            let isLongPress = false;
+
+            celda.addEventListener('touchstart', (e) => {
+                isLongPress = false;
+                pressTimer = setTimeout(() => {
+                    isLongPress = true;
+                    window.location.href = celda.dataset.urlDetalle;
+                }, 500); // Medio segundo para ir al detalle
+            });
+
+            celda.addEventListener('touchend', (e) => {
+                clearTimeout(pressTimer);
+                if (!isLongPress) {
+                    // Si fue un toque corto, abrimos el modal
+                    const fechaSeleccionada = celda.dataset.fecha;
+                    campoFecha.value = fechaSeleccionada;
+                    modal.classList.remove('modal-oculto');
+                    modal.classList.add('modal-visible');
+                }
+            });
+            
+            celda.addEventListener('touchmove', () => {
+                clearTimeout(pressTimer); // Si arrastra el dedo, cancela todo
+            });
+
+        } else {
+            // --- LÓGICA EXCLUSIVA PARA PC ---
+            // 1. Clic en la celda para ir al detalle
+            celda.addEventListener('click', (e) => {
+                // Si el clic fue sobre el botón '+', no hacemos nada aquí
+                if (e.target.classList.contains('boton-agregar-turno')) {
+                    return;
+                }
+                window.location.href = celda.dataset.urlDetalle;
+            });
+
+            // 2. Clic en el botón '+' para abrir el modal
+            const botonPC = celda.querySelector('.boton-agregar-turno');
+            if (botonPC) {
+                botonPC.addEventListener('click', (e) => {
+                    const fechaSeleccionada = celda.dataset.fecha;
+                    campoFecha.value = fechaSeleccionada;
+                    modal.classList.remove('modal-oculto');
+                    modal.classList.add('modal-visible');
+                });
+            }
+        }
+    });
+
+    // --- CÓDIGO COMÚN PARA CERRAR EL POP-UP ---
+    if (spanCerrar) {
+        spanCerrar.onclick = () => {
+            modal.classList.remove('modal-visible');
+            modal.classList.add('modal-oculto');
+        }
+    }
+    window.onclick = (event) => {
+        if (event.target == modal) {
+            modal.classList.remove('modal-visible');
+            modal.classList.add('modal-oculto');
+        }
+    }
+});
+</script>
 {% endblock %}

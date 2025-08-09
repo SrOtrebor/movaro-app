@@ -14,10 +14,10 @@
 <hr>
 
 <div class="layout-container">
-    <div class=".layout-col-principal">
+    <div class="layout-col-principal">
         <h2>Mis Servicios Actuales</h2>
         {% if servicios %}
-            <table class="stats-table" width="100%">
+            <<table class="stats-table tabla-responsiva" width="100%">
                 <thead>
                     <tr>
                         <th>Nombre del Servicio</th>
@@ -44,7 +44,7 @@
         {% endif %}
     </div>
 
-    <div class=".layout-col-lateral">
+    <div class="layout-col-lateral">
         <h2>Agregar Nuevo Servicio</h2>
         <form action="/servicios" method="post">
             <label for="nombre">Nombre del Servicio:</label><br>

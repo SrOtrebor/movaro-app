@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Mi Horario Laboral{% endblock %}
+{% block content %}
+<h1>Mi Horario Laboral</h1>
+<p>Configurá tus días y horas de trabajo. Esto definirá tu disponibilidad en el link público para clientes.</p>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alerta flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+<hr>
+
+<form action="/horarios" method="post">
+    <table class="stats-table tabla-responsiva">
+        <thead>
+            <tr>
+                <th>Día</th>
+                <th>¿Trabajás?</th>
+                <th>Hora de Inicio</th>
+                <th>Hora de Fin</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for i in range(7) %}
+                {% set dia = dias_semana[i] %}
+                {% set horario_dia = horarios.get(i) %}
+                <tr>
+                    <td data-label="Día"><strong>{{ dia }}</strong></td>
+                    <td data-label="¿Trabajás?">
+                        <input type="checkbox" name="trabaja_{{ i }}" 
+                               {% if not horario_dia or horario_dia.trabaja %}checked{% endif %}>
+                    </td>
+                    <td data-label="Hora de Inicio">
+                        <input type="time" name="inicio_{{ i }}" value="{{ horario_dia.hora_inicio if horario_dia else '09:00' }}">
+                    </td>
+                    <td data-label="Hora de Fin">
+                        <input type="time" name="fin_{{ i }}" value="{{ horario_dia.hora_fin if horario_dia else '18:00' }}">
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <br>
+    <button type="submit">Guardar Horarios</button>
+</form>
+{% endblock %}

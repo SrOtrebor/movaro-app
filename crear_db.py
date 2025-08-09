@@ -19,8 +19,12 @@ try:
             id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL, nombre_salon TEXT NOT NULL,
             estado TEXT NOT NULL DEFAULT 'pendiente', fecha_vencimiento DATE,
-            meta_fidelizacion INTEGER DEFAULT 5
-        )''')
+            meta_fidelizacion INTEGER DEFAULT 5,
+            -- NUEVA COLUMNA PARA EL LINK PÚBLICO --
+            url_salon TEXT UNIQUE
+        )
+    ''')
+ 
 
     print("OK: Creando tabla 'clientes'...")
     cursor.execute('''
@@ -53,6 +57,20 @@ try:
             FOREIGN KEY (cliente_id) REFERENCES clientes (id),
             FOREIGN KEY (servicio_id) REFERENCES servicios (id)
         )''')
+        
+    print("OK: Creando tabla 'horarios'...")
+    cursor.execute('''
+        CREATE TABLE horarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER NOT NULL,
+            dia_semana INTEGER NOT NULL, -- 0=Lunes, 1=Martes, etc.
+            hora_inicio TEXT,
+            hora_fin TEXT,
+            trabaja BOOLEAN NOT NULL DEFAULT 1, -- 1=Sí trabaja, 0=No trabaja
+            UNIQUE(usuario_id, dia_semana),
+            FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
+        )
+    ''')
 
     conn.commit()
     conn.close()

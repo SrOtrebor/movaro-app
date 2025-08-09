@@ -4,25 +4,59 @@
 
 {% block content %}
     <h1>Mis Clientes</h1>
-    
-    <h2>Nuevo Cliente</h2>
-    <form action="/agregar_cliente" method="post">
-        <label>Nombre:</label> <input type="text" name="nombre" required><br>
-        <label>Apellido:</label> <input type="text" name="apellido" required><br>
-        <label>Teléfono:</label> <input type="tel" name="telefono"><br>
-        <label>Cumpleaños:</label> <input type="date" name="cumpleanos"><br><br>
-        <button type="submit">Guardar Cliente</button>
-    </form>
+    <p>Agregá nuevos clientes o hacé clic en uno existente para ver su historial.</p>
     <hr>
 
-    <h2>Listado de Clientes</h2>
-    <ul>
-        {% for cliente in clientes %}
-            <li>
-                <strong><a href="/cliente/{{ cliente.id }}">{{ cliente.nombre }} {{ cliente.apellido }}</a></strong>
-            </li>
-        {% else %}
-            <li>No tenés clientes registrados.</li>
-        {% endfor %}
-    </ul>
+    <div class="card">
+        <h2>Listado de Clientes</h2>
+        <table class="stats-table tabla-responsiva">
+            <thead>
+                <tr>
+                    <th>Nombre y Apellido</th>
+                    <th>Teléfono</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cliente in clientes %}
+                <tr>
+                    <td data-label="Nombre">{{ cliente.nombre }} {{ cliente.apellido }}</td>
+                    <td data-label="Teléfono">{{ cliente.telefono or 'No especificado' }}</td>
+                    <td data-label="Acción">
+                        <a href="/cliente/{{ cliente.id }}" class="boton-accion">Ver Detalle</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" style="text-align: center;">No tenés clientes registrados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <hr>
+
+    <div class="card">
+        <h2>Nuevo Cliente</h2>
+        <form action="/agregar_cliente" method="post">
+            <div class="form-group">
+                <label for="nombre">Nombre:</label>
+                <input type="text" id="nombre" name="nombre" required>
+            </div>
+            <div class="form-group">
+                <label for="apellido">Apellido:</label>
+                <input type="text" id="apellido" name="apellido" required>
+            </div>
+            <div class="form-group">
+                <label for="telefono">Teléfono:</label>
+                <input type="tel" id="telefono" name="telefono">
+            </div>
+            <div class="form-group">
+                <label for="cumpleanos">Cumpleaños:</label>
+                <input type="date" id="cumpleanos" name="cumpleanos">
+            </div>
+            <button type="submit">Guardar Cliente</button>
+        </form>
+    </div>
 {% endblock %}

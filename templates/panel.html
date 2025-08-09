@@ -3,12 +3,6 @@
 {% block title %}Panel de Control{% endblock %}
 
 {% block content %}
-
-<h1>Panel de Control</h1>
-<p>¡Bienvenida/o de nuevo, {{ session.nombre_salon }}!</p>
-
-<hr>
-
 <div class="layout-container">
     <div class="layout-col-principal">
         <h2>Alertas de Hoy</h2>
@@ -51,8 +45,8 @@
         {% endif %}
         
         {% if clientes_a_premiar %}
-            <div class="alerta" style="background-color: #f5d1f1; border-color: #eeb4ea; color: #850c60;">
-                <h3>🏆 ¡Clientes Leales para Premiar!</h3>
+            <div class="alerta alerta-fidelizacion" style="background-color: #e8dff5; border-color: #d6bbfb; color: #5a189a;">
+                <h3>🏆 ¡Clientes para Premiar!</h3>
                 <ul>
                     {% for clienta in clientes_a_premiar %}
                         <li style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -61,10 +55,10 @@
                             </span>
                             <div style="display:flex; gap: 10px;">
                                 {% set texto_premio = "¡Hola " ~ clienta.nombre ~ "! ✨ Quería contarte que por tu fidelidad alcanzaste los " ~ clienta.total_turnos ~ " servicios y te ganaste un premio especial en tu próxima visita. ¡Gracias por elegirme siempre!" %}
-                                <a href="https://wa.me/{{ clienta.telefono_wa }}?text={{ texto_premio | urlencode }}" target="_blank">Avisar Premio</a>
+                                <a href="https://wa.me/{{ clienta.telefono_wa }}?text={{ texto_premio | urlencode }}" target="_blank" class="boton-accion boton-avisar">Avisar Premio</a>
                                 <form action="/premiar_cliente" method="post" style="margin:0;">
                                     <input type="hidden" name="cliente_id" value="{{ clienta.id }}">
-                                    <button type="submit">Marcar como Premiado</button>
+                                    <button type="submit" class="boton-accion">Marcar Premiado</button>
                                 </form>
                             </div>
                         </li>
@@ -88,10 +82,9 @@
             </div>
         {% endif %}
         
-        {% if not cumpleaneras and not turnos_manana and not clientes_inactivos and not clientes_a_premiar %}
+        {% if not cumpleaneras and not turnos_manana and not clientes_inactivos and not clientes_a_premiar and not alerta_vencimiento %}
             <p>No hay alertas para hoy. ¡Todo tranquilo!</p>
         {% endif %}
-
     </div>
 
     <div class="layout-col-lateral">
@@ -102,7 +95,9 @@
                 {% for semana in dias_del_mes %}
                 <tr>
                     {% for dia in semana %}
-                        <td class="{% if dia == 0 %}dia-otro-mes{% elif dia in dias_con_turnos %}dia-ocupado{% endif %}">{% if dia != 0 %}{{ dia }}{% endif %}</td>
+                        <td class="celda-dia {% if dia == 0 %}dia-otro-mes{% elif dia in dias_con_turnos %}dia-ocupado{% endif %}{% if ano == fecha_hoy.year and mes == fecha_hoy.month and dia == fecha_hoy.day %} dia-hoy{% endif %}" data-fecha="{{ ano }}-{{ '%02d'|format(mes) }}-{{ '%02d'|format(dia) }}">
+                            {% if dia != 0 %}<div class="dia-numero">{{ dia }}</div>{% endif %}
+                        </td>
                     {% endfor %}
                 </tr>
                 {% endfor %}
@@ -110,14 +105,88 @@
         </table>
         <hr>
         <h2>Configuración</h2>
-        <h3>Sistema de Fidelización</h3>
         <form action="/panel" method="post">
-            <label for="meta">Premiar al Cliente cada:</label>
-            <input type="number" id="meta" name="meta_fidelizacion" min="1" value="{{ meta_actual }}">
+            <label>Premiar cada:</label>
+            <input type="number" name="meta_fidelizacion" min="1" value="{{ meta_actual }}">
             <label>servicios.</label>
-            <br><br>
-            <button type="submit">Guardar Meta</button>
+            <button type="submit">Guardar</button>
         </form>
     </div>
 </div>
+
+<div id="modal-turno" class="modal-oculto">
+    <div class="modal-contenido">
+        <span class="modal-cerrar">&times;</span>
+<h3>Agendar Nuevo Turno</h3>
+<div id="error-container-modal"></div>
+
+<form action="/agregar_turno" method="post" class="form-section" style="padding:0; box-shadow:none; border:0;">
+    
+    <div class="form-group">
+        <label for="cliente_id_modal">Cliente:</label>
+        <select id="cliente_id_modal" name="cliente_id" required>
+            <option value="">Seleccionar cliente...</option>
+            {% for cliente in clientes %}
+                <option value="{{ cliente.id }}">{{ cliente.nombre }} {{ cliente.apellido }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="servicio_id_modal">Servicio:</label>
+        <select id="servicio_id_modal" name="servicio_id" required>
+            <option value="">Seleccionar servicio...</option>
+            {% for servicio in servicios %}
+                 <option value="{{ servicio.id }}">{{ servicio.nombre }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="modal-fecha">Fecha:</label>
+        <input type="date" id="modal-fecha" name="fecha" required>
+    </div>
+    
+    <div class="form-group">
+        <label for="hora_modal">Hora:</label>
+        <input type="time" id="hora_modal" name="hora" required>
+    </div>
+    
+    <button type="submit" style="width: 100%;">Agendar Turno</button>
+
+</form>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('modal-turno');
+        if (!modal) return;
+        const spanCerrar = modal.querySelector('.modal-cerrar');
+        const campoFecha = modal.querySelector('#modal-fecha');
+        
+        document.querySelectorAll('.celda-dia').forEach(celda => {
+            celda.addEventListener('click', function() {
+                const fechaSeleccionada = this.getAttribute('data-fecha');
+                if (fechaSeleccionada) {
+                    campoFecha.value = fechaSeleccionada;
+                    modal.classList.remove('modal-oculto');
+                    modal.classList.add('modal-visible');
+                }
+            });
+        });
+
+        if(spanCerrar) {
+            spanCerrar.onclick = function() {
+                modal.classList.remove('modal-visible');
+                modal.classList.add('modal-oculto');
+            }
+        }
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.classList.remove('modal-visible');
+                modal.classList.add('modal-oculto');
+            }
+        }
+    });
+</script>
 {% endblock %}
