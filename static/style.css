@@ -379,3 +379,33 @@ img { max-width: 100%; height: auto; } /* Regla de oro para imágenes responsiva
     }
 }
 
+/* ======================================= */
+/* CORRECCIÓN DEFINITIVA PARA HEADER DEL CALENDARIO */
+/* ======================================= */
+.calendario-header {
+    display: flex !important;
+    flex-direction: row !important; /* Forzamos la dirección horizontal */
+    justify-content: space-between !important;
+    align-items: center !important; /* Alineación vertical perfecta */
+    gap: 10px;
+    padding: 10px 0; /* Agregamos un poco de espacio vertical */
+}
+
+.calendario-header h2 {
+    font-size: 1.5em; /* Tamaño base del título */
+    white-space: nowrap;
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+/* Ajuste solo para móviles */
+@media (max-width: 768px) {
+    .calendario-header h2 {
+        font-size: 1.1em; /* Título más chico en móvil */
+    }
+    .calendario-header a {
+        font-size: 0.8em; /* Botones más chicos en móvil */
+        padding: 5px 8px;
+    }
+}
