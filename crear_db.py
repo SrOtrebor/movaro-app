@@ -72,6 +72,22 @@ try:
         )
     ''')
 
+# ... (aquí termina el bloque que crea la tabla 'horarios')
+
+    print("OK: Creando tabla 'plantillas_mensajes'...")
+    cursor.execute('''
+        CREATE TABLE plantillas_mensajes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER NOT NULL,
+            tipo_mensaje TEXT NOT NULL, -- ej: 'recordatorio', 'cumpleanos'
+            texto_mensaje TEXT NOT NULL,
+            UNIQUE(usuario_id, tipo_mensaje),
+            FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
+        )
+    ''')
+
+# ... (aquí empieza la línea conn.commit())
+
     conn.commit()
     conn.close()
     print("\n¡ÉXITO! La base de datos se creó correctamente.")

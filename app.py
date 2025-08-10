@@ -2,12 +2,15 @@ import sqlite3
 import calendar
 import os
 import time
-from flask import Flask, render_template, request, redirect, flash, session, jsonify
+import urllib.parse
+from flask import Flask, render_template, request, redirect, flash, session, jsonify, get_flashed_messages
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from functools import wraps
 from collections import Counter
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
+
 
 app = Flask(__name__)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax' # <-- AGREGÁ ESTA LÍNEA
@@ -685,6 +688,135 @@ def ver_estadisticas():
     servicios_populares = contador_servicios.most_common()
     return render_template('estadisticas.html', turnos_mes=turnos_por_mes_ordenado, servicios_pop=servicios_populares)
 
+
+@app.route('/mensajes')
+def gestionar_mensajes():
+    if 'usuario_id' not in session:
+        return redirect('/login')
+
+    usuario_id_actual = session['usuario_id']
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    # Obtenemos todas las plantillas guardadas por el usuario
+    cursor.execute("SELECT id, tipo_mensaje, texto_mensaje FROM plantillas_mensajes WHERE usuario_id = ? ORDER BY tipo_mensaje", (usuario_id_actual,))
+    plantillas = cursor.fetchall()
+    conn.close()
+
+    return render_template('mensajes.html', plantillas=plantillas)
+
+@app.route('/mensajes/crear', methods=['POST'])
+def crear_plantilla():
+    if 'usuario_id' not in session:
+        return redirect('/login')
+
+    usuario_id_actual = session['usuario_id']
+    nombre_plantilla = request.form.get('nombre_plantilla')
+    texto_plantilla = request.form.get('texto_plantilla')
+
+    if not nombre_plantilla or not texto_plantilla:
+        flash("El nombre y el texto de la plantilla no pueden estar vacíos.", "error")
+        return redirect('/mensajes')
+    
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO plantillas_mensajes (usuario_id, tipo_mensaje, texto_mensaje) VALUES (?, ?, ?)",
+            (usuario_id_actual, nombre_plantilla, texto_plantilla)
+        )
+        conn.commit()
+        flash("¡Plantilla creada con éxito!", "success")
+    except sqlite3.IntegrityError:
+        flash("Error: Ya existe una plantilla con ese nombre.", "error")
+    finally:
+        conn.close()
+
+    return redirect('/mensajes')
+
+@app.route('/mensajes/borrar', methods=['POST'])
+def borrar_plantilla():
+    if 'usuario_id' not in session:
+        return redirect('/login')
+        
+    usuario_id_actual = session['usuario_id']
+    plantilla_id = request.form.get('plantilla_id')
+
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
+    # Nos aseguramos de que el usuario solo pueda borrar sus propias plantillas
+    cursor.execute("DELETE FROM plantillas_mensajes WHERE id = ? AND usuario_id = ?", (plantilla_id, usuario_id_actual))
+    conn.commit()
+    conn.close()
+
+    flash("Plantilla eliminada.", "success")
+    return redirect('/mensajes')
+
+@app.route('/campanas', methods=['GET', 'POST'])
+def campanas():
+    if 'usuario_id' not in session:
+        return redirect('/login')
+
+    usuario_id_actual = session['usuario_id']
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    # Buscamos todas las plantillas del usuario para el menú desplegable
+    cursor.execute("SELECT id, tipo_mensaje FROM plantillas_mensajes WHERE usuario_id = ? ORDER BY tipo_mensaje", (usuario_id_actual,))
+    plantillas = cursor.fetchall()
+
+    if request.method == 'POST':
+        plantilla_id = request.form.get('plantilla_id')
+        if plantilla_id:
+            cursor.execute("SELECT texto_mensaje FROM plantillas_mensajes WHERE id = ? AND usuario_id = ?", (plantilla_id, usuario_id_actual))
+            plantilla_seleccionada = cursor.fetchone()
+            
+            if plantilla_seleccionada:
+                # Guardamos el texto de la plantilla en la sesión
+                session['ultima_plantilla_texto'] = plantilla_seleccionada['texto_mensaje']
+
+                cursor.execute("SELECT id, nombre, apellido, telefono FROM clientes WHERE usuario_id = ? AND telefono IS NOT NULL AND telefono != ''", (usuario_id_actual,))
+                clientes = cursor.fetchall()
+                
+                clientes_con_wa = []
+                for cliente in clientes:
+                    cliente_dict = dict(cliente)
+                    mensaje_personalizado = session['ultima_plantilla_texto'].replace("{{nombre_cliente}}", cliente['nombre'])
+                    mensaje_codificado = urllib.parse.quote_plus(mensaje_personalizado)
+                    
+                    telefono_limpio = ''.join(filter(str.isdigit, cliente['telefono']))
+                    if len(telefono_limpio) >= 10:
+                        telefono_limpio = "549" + telefono_limpio
+                    
+                    cliente_dict['link_wa'] = f"https://wa.me/{telefono_limpio}?text={mensaje_codificado}"
+                    clientes_con_wa.append(cliente_dict)
+
+                # ¡LA CLAVE! Guardamos la lista generada en la sesión del navegador
+                session['ultima_campana'] = clientes_con_wa
+                
+                conn.close()
+                return redirect('/campanas') # Redirigimos para limpiar el POST
+
+    # Lógica para GET: recuperamos la campaña de la sesión si existe
+    clientes_con_wa = session.get('ultima_campana', [])
+    plantilla_seleccionada_texto = session.get('ultima_plantilla_texto', "")
+    conn.close()
+
+    return render_template('campanas.html', 
+                           plantillas=plantillas, 
+                           clientes_con_wa=clientes_con_wa,
+                           plantilla_seleccionada_texto=plantilla_seleccionada_texto)
+
+
+@app.route('/campanas/limpiar')
+def limpiar_campana():
+    # Borramos los datos de la campaña guardada en la sesión
+    session.pop('ultima_campana', None)
+    session.pop('ultima_plantilla_texto', None)
+    # Le indicamos al HTML que también limpie su memoria
+    flash("limpiar_storage", "info") 
+    return redirect('/campanas')
 if __name__ == '__main__':
-    # No es necesario llamar a init_db() aquí si usamos crear_db.py
     app.run(debug=True)

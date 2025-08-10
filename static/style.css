@@ -462,3 +462,14 @@ img { max-width: 100%; height: auto; } /* Regla de oro para imágenes responsiva
 .form-group { margin-bottom: 20px; }
 .form-group label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9em; }
 .form-group input, .form-group select { width: 100%; padding: 12px; border: 1px solid var(--color-borde-suave); border-radius: 5px; box-sizing: border-box; }
+
+     .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--color-borde-suave);
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 1em;
+            font-family: inherit; /* Usa la misma fuente que el resto de la web */
+            resize: vertical; /* Permite que el usuario agrande el cuadro verticalmente */
+        }

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Mis Plantillas de Mensajes{% endblock %}
+
+{% block content %}
+    <h1>Mis Plantillas de Mensajes</h1>
+    <p>
+        Creá, editá y eliminá tus plantillas de mensajes. Podés usar "variables" como 
+        <strong>{{nombre_cliente}}</strong> y el sistema las reemplazará automáticamente.
+    </p>
+    <hr>
+
+    <div class="layout-container">
+        <div class="layout-col-principal">
+            <div class="card">
+                <h2>Mis Plantillas Guardadas</h2>
+                {% if plantillas %}
+                    <table class="stats-table tabla-responsiva">
+                        <thead>
+                            <tr>
+                                <th>Nombre de la Plantilla</th>
+                                <th>Texto</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for plantilla in plantillas %}
+                            <tr>
+                                <td data-label="Nombre"><strong>{{ plantilla.tipo_mensaje }}</strong></td>
+                                <td data-label="Texto" style="white-space: pre-wrap; word-break: break-word;">{{ plantilla.texto_mensaje }}</td>
+                                <td data-label="Acción">
+                                    <form action="/mensajes/borrar" method="post" onsubmit="return confirm('¿Estás segura de que querés eliminar esta plantilla?');">
+                                        <input type="hidden" name="plantilla_id" value="{{ plantilla.id }}">
+                                        <button type="submit" class="boton-accion" style="background-color: #dc3545;">Borrar</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>Aún no has creado ninguna plantilla de mensaje.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="layout-col-lateral">
+            <div class="card">
+                <h2>Crear Nueva Plantilla</h2>
+                <form action="/mensajes/crear" method="post">
+                    <div class="form-group">
+                        <label for="nombre_plantilla">Nombre (ej: "Oferta de Verano"):</label>
+                        <input type="text" id="nombre_plantilla" name="nombre_plantilla" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="texto_plantilla">Texto del Mensaje:</label>
+                        <textarea id="texto_plantilla" name="texto_plantilla" rows="6" class="form-control" required></textarea>
+                    </div>
+                    <button type="submit">Crear Plantilla</button>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}
