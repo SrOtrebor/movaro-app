@@ -2,7 +2,7 @@ import sqlite3
 import calendar
 import os
 import time
-from flask import Flask, render_template, request, redirect, flash, session
+from flask import Flask, render_template, request, redirect, flash, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from functools import wraps
@@ -602,77 +602,73 @@ def borrar_turno():
     return redirect(f'/calendario/{fecha_dt.year}/{fecha_dt.month}?v={cache_buster}')
 @app.route('/agregar_turno', methods=['POST'])
 def agregar_turno():
-    if 'usuario_id' not in session: return redirect('/login')
-    
-    usuario_id_actual = session['usuario_id']
-    fecha_str = request.form['fecha']
-    hora_str = request.form['hora']
-    cliente_id = int(request.form['cliente_id'])
-    servicio_id = int(request.form['servicio_id'])
-    
-    # URL a la que volveremos en caso de éxito o error
-    redir_url = f'/calendario/{fecha_str[:4]}/{int(fecha_str[5:7])}'
+    if 'usuario_id' not in session:
+        return jsonify({'status': 'error', 'message': 'No has iniciado sesión.'})
 
+    # --- Recolección y validación de datos del formulario ---
+    usuario_id_actual = session['usuario_id']
+    fecha_str = request.form.get('fecha')
+    hora_str = request.form.get('hora')
+    try:
+        cliente_id = int(request.form.get('cliente_id', 0))
+        servicio_id = int(request.form.get('servicio_id', 0))
+    except (ValueError, TypeError):
+        return jsonify({'status': 'error', 'message': 'El cliente o servicio no es válido.'})
+
+    if not all([fecha_str, hora_str, cliente_id, servicio_id]):
+        return jsonify({'status': 'error', 'message': 'Todos los campos son obligatorios.'})
+
+    # --- Conexión a la base de datos ---
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    # --- NUEVA VALIDACIÓN DE HORARIO LABORAL ---
+    # --- Validación de Horario Laboral ---
     try:
         fecha_dt = datetime.strptime(fecha_str, '%Y-%m-%d')
-        dia_semana = fecha_dt.weekday() # Lunes=0, Martes=1, ...
-
+        dia_semana = fecha_dt.weekday()
         cursor.execute("SELECT trabaja, hora_inicio, hora_fin FROM horarios WHERE usuario_id = ? AND dia_semana = ?", (usuario_id_actual, dia_semana))
         horario_laboral = cursor.fetchone()
 
         if not horario_laboral or not horario_laboral['trabaja']:
-            flash("Error: El día seleccionado está configurado como no laborable.", "error")
-            session['form_data'] = request.form.to_dict()
             conn.close()
-            return redirect(redir_url)
-        
-        if hora_str < horario_laboral['hora_inicio'] or hora_str >= horario_laboral['hora_fin']:
-            flash(f"Error: El horario está fuera del rango laboral ({horario_laboral['hora_inicio']} - {horario_laboral['hora_fin']}).", "error")
-            session['form_data'] = request.form.to_dict()
-            conn.close()
-            return redirect(redir_url)
-    except (ValueError, TypeError):
-        flash("Error: Fecha u hora inválida.", "error")
-        session['form_data'] = request.form.to_dict()
-        conn.close()
-        return redirect(redir_url)
-    # --- FIN DE LA NUEVA VALIDACIÓN ---
+            return jsonify({'status': 'error', 'message': 'El día seleccionado está configurado como no laborable.'})
 
-    # Obtenemos la duración del servicio (como antes)
+        if hora_str < horario_laboral['hora_inicio'] or hora_str >= horario_laboral['hora_fin']:
+            conn.close()
+            return jsonify({'status': 'error', 'message': f"El horario está fuera del rango laboral ({horario_laboral['hora_inicio']} - {horario_laboral['hora_fin']})."})
+    except (ValueError, TypeError):
+        conn.close()
+        return jsonify({'status': 'error', 'message': 'La fecha o la hora tienen un formato inválido.'})
+
+    # --- Validación de Superposición de Turnos ---
     servicio_seleccionado = cursor.execute("SELECT nombre, duracion FROM servicios WHERE id = ? AND usuario_id = ?", (servicio_id, usuario_id_actual)).fetchone()
     if not servicio_seleccionado:
-        flash("Error: Servicio no válido.", "error")
         conn.close()
-        return redirect(redir_url)
+        return jsonify({'status': 'error', 'message': 'El servicio seleccionado no es válido.'})
 
-    # Verificación de superposición (como antes)
     duracion_servicio = servicio_seleccionado['duracion']
+    TOLERANCIA_MINUTOS = 10 # Asegurate de tener esta variable definida
     inicio_nuevo_turno = datetime.strptime(f"{fecha_str} {hora_str}", '%Y-%m-%d %H:%M')
     fin_nuevo_turno = inicio_nuevo_turno + timedelta(minutes=duracion_servicio + TOLERANCIA_MINUTOS)
+
     turnos_existentes = cursor.execute("SELECT t.hora, s.duracion FROM turnos t JOIN servicios s ON t.servicio_id = s.id WHERE t.usuario_id = ? AND t.fecha = ?", (usuario_id_actual, fecha_str)).fetchall()
     for turno_existente in turnos_existentes:
         inicio_existente = datetime.strptime(f"{fecha_str} {turno_existente['hora']}", '%Y-%m-%d %H:%M')
         fin_existente = inicio_existente + timedelta(minutes=turno_existente['duracion'] + TOLERANCIA_MINUTOS)
         if max(inicio_nuevo_turno, inicio_existente) < min(fin_nuevo_turno, fin_existente):
-            flash(f"Error: El horario se pisa con el turno de las {turno_existente['hora']}.", "error")
-            session['form_data'] = request.form.to_dict()
             conn.close()
-            return redirect(redir_url)
+            return jsonify({'status': 'error', 'message': f"Conflicto: el horario se superpone con el turno de las {turno_existente['hora']}."})
 
-    # Si todo está bien, insertamos el turno
+    # --- Inserción en la Base de Datos si todo es correcto ---
     cursor.execute(
         "INSERT INTO turnos (usuario_id, cliente_id, servicio_id, servicio_nombre, fecha, hora) VALUES (?, ?, ?, ?, ?, ?)",
         (usuario_id_actual, cliente_id, servicio_id, servicio_seleccionado['nombre'], fecha_str, hora_str)
     )
     conn.commit()
     conn.close()
-    flash("¡Turno agendado con éxito!", "success")
-    return redirect(redir_url)
+
+    return jsonify({'status': 'success', 'message': '¡Turno agendado con éxito!'})
 @app.route('/estadisticas')
 def ver_estadisticas():
     if 'usuario_id' not in session: return redirect('/login')

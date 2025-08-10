@@ -55,7 +55,7 @@
     <div class="modal-contenido">
         <span class="modal-cerrar">&times;</span>
 <h3>Agendar Nuevo Turno</h3>
-<div id="error-container-modal"></div>
+<div id="error-container-modal"></div> <form action="/agregar_turno" method="post" ...>
 
 <form action="/agregar_turno" method="post" class="form-section" style="padding:0; box-shadow:none; border:0;">
     
@@ -100,83 +100,103 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // --- 1. DEFINIMOS LOS ELEMENTOS DEL POP-UP ---
     const modal = document.getElementById('modal-turno');
     if (!modal) return;
     
     const spanCerrar = modal.querySelector('.modal-cerrar');
     const campoFecha = modal.querySelector('#modal-fecha');
-    
-    // --- DETECTOR DE DISPOSITIVO ---
-    const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    const form = modal.querySelector('form');
+    const errorContainer = modal.querySelector('#error-container-modal');
 
+    // --- FUNCIÓN PARA ABRIR EL POP-UP (LIMPIANDO EL FORMULARIO) ---
+    const abrirModal = (fecha) => {
+        if (!fecha) return;
+        form.reset(); // Limpia todos los campos del formulario.
+        errorContainer.innerHTML = ''; // Limpia cualquier mensaje de error anterior.
+        campoFecha.value = fecha; // Establece la fecha correcta.
+        modal.classList.remove('modal-oculto');
+        modal.classList.add('modal-visible');
+    };
+
+    // --- 2. LÓGICA PARA ABRIR EL POP-UP (PC vs MÓVIL) ---
+    const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     document.querySelectorAll('.celda-dia').forEach(celda => {
         if (celda.classList.contains('dia-otro-mes')) return;
 
         if (isMobile) {
-            // --- LÓGICA EXCLUSIVA PARA CELULARES ---
+            // Lógica para Celulares (toque corto abre, toque largo navega)
             let pressTimer;
             let isLongPress = false;
-
             celda.addEventListener('touchstart', (e) => {
                 isLongPress = false;
                 pressTimer = setTimeout(() => {
                     isLongPress = true;
-                    window.location.href = celda.dataset.urlDetalle;
-                }, 500); // Medio segundo para ir al detalle
+                    if(celda.dataset.urlDetalle) window.location.href = celda.dataset.urlDetalle;
+                }, 500);
             });
-
             celda.addEventListener('touchend', (e) => {
                 clearTimeout(pressTimer);
-                if (!isLongPress) {
-                    // Si fue un toque corto, abrimos el modal
-                    const fechaSeleccionada = celda.dataset.fecha;
-                    campoFecha.value = fechaSeleccionada;
-                    modal.classList.remove('modal-oculto');
-                    modal.classList.add('modal-visible');
-                }
+                if (!isLongPress) abrirModal(celda.dataset.fecha);
             });
-            
-            celda.addEventListener('touchmove', () => {
-                clearTimeout(pressTimer); // Si arrastra el dedo, cancela todo
-            });
-
+            celda.addEventListener('touchmove', () => clearTimeout(pressTimer));
         } else {
-            // --- LÓGICA EXCLUSIVA PARA PC ---
-            // 1. Clic en la celda para ir al detalle
+            // Lógica para PC (clic en celda navega, clic en '+' abre)
             celda.addEventListener('click', (e) => {
-                // Si el clic fue sobre el botón '+', no hacemos nada aquí
-                if (e.target.classList.contains('boton-agregar-turno')) {
-                    return;
-                }
-                window.location.href = celda.dataset.urlDetalle;
+                if (e.target.classList.contains('boton-agregar-turno')) return;
+                if(celda.dataset.urlDetalle) window.location.href = celda.dataset.urlDetalle;
             });
-
-            // 2. Clic en el botón '+' para abrir el modal
             const botonPC = celda.querySelector('.boton-agregar-turno');
             if (botonPC) {
                 botonPC.addEventListener('click', (e) => {
-                    const fechaSeleccionada = celda.dataset.fecha;
-                    campoFecha.value = fechaSeleccionada;
-                    modal.classList.remove('modal-oculto');
-                    modal.classList.add('modal-visible');
+                    e.stopPropagation();
+                    abrirModal(celda.dataset.fecha);
                 });
             }
         }
     });
 
-    // --- CÓDIGO COMÚN PARA CERRAR EL POP-UP ---
+    // --- 3. LÓGICA PARA ENVIAR EL FORMULARIO SIN RECARGAR (AJAX) ---
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        errorContainer.innerHTML = '';
+        const formData = new FormData(form);
+
+        fetch('/agregar_turno', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                modal.classList.add('modal-oculto');
+                window.location.reload(); 
+            } else {
+                errorContainer.innerHTML = `<div class="alerta flash-error">${data.message}</div>`;
+            }
+        })
+        .catch(error => {
+            errorContainer.innerHTML = `<div class="alerta flash-error">Error de conexión. Intentalo de nuevo.</div>`;
+        });
+    });
+
+    // --- 4. CÓDIGO PARA CERRAR EL POP-UP (VERSIÓN ROBUSTA) ---
+    const cerrarModal = () => {
+        modal.classList.remove('modal-visible');
+        modal.classList.add('modal-oculto');
+        if (errorContainer) {
+            errorContainer.innerHTML = '';
+        }
+    };
+
     if (spanCerrar) {
-        spanCerrar.onclick = () => {
-            modal.classList.remove('modal-visible');
-            modal.classList.add('modal-oculto');
-        }
+        spanCerrar.addEventListener('click', cerrarModal);
     }
-    window.onclick = (event) => {
-        if (event.target == modal) {
-            modal.classList.remove('modal-visible');
-            modal.classList.add('modal-oculto');
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            cerrarModal();
         }
-    }
+    });
 });
 </script>
 {% endblock %}

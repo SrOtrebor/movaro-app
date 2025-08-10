@@ -520,49 +520,68 @@ def ver_detalle_dia(ano, mes, dia):
                            fecha=fecha_seleccionada)
 @app.route('/agregar_turno', methods=['POST'])
 def agregar_turno():
-    if 'usuario_id' not in session: return redirect('/login')
+    if 'usuario_id' not in session:
+        return jsonify({'status': 'error', 'message': 'No has iniciado sesión.'})
+    
+    # --- Recolección de datos ---
     usuario_id_actual = session['usuario_id']
-    cliente_id = int(request.form['cliente_id'])
-    servicio_id = int(request.form['servicio_id'])
-    fecha_str = request.form['fecha']
-    hora_str = request.form['hora']
+    fecha_str = request.form.get('fecha')
+    hora_str = request.form.get('hora')
+    try:
+        cliente_id = int(request.form.get('cliente_id', 0))
+        servicio_id = int(request.form.get('servicio_id', 0))
+    except (ValueError, TypeError):
+        return jsonify({'status': 'error', 'message': 'El cliente o servicio no es válido.'})
+    
+    if not all([fecha_str, hora_str, cliente_id, servicio_id]):
+        return jsonify({'status': 'error', 'message': 'Todos los campos son obligatorios.'})
 
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    servicio_seleccionado = cursor.execute("SELECT nombre, duracion FROM servicios WHERE id = ? AND usuario_id = ?", (servicio_id, usuario_id_actual)).fetchone()
-    if not servicio_seleccionado:
-        flash("Error: Servicio no válido.")
+    # --- Validación de Horario Laboral ---
+    try:
+        fecha_dt = datetime.strptime(fecha_str, '%Y-%m-%d')
+        dia_semana = fecha_dt.weekday()
+        cursor.execute("SELECT trabaja, hora_inicio, hora_fin FROM horarios WHERE usuario_id = ? AND dia_semana = ?", (usuario_id_actual, dia_semana))
+        horario_laboral = cursor.fetchone()
+
+        if not horario_laboral or not horario_laboral['trabaja']:
+            conn.close()
+            return jsonify({'status': 'error', 'message': 'El día seleccionado está configurado como no laborable.'})
+        
+        if hora_str < horario_laboral['hora_inicio'] or hora_str >= horario_laboral['hora_fin']:
+            conn.close()
+            return jsonify({'status': 'error', 'message': f"El horario está fuera del rango laboral ({horario_laboral['hora_inicio']} - {horario_laboral['hora_fin']})."})
+    except (ValueError, TypeError):
         conn.close()
-        return redirect(f'/calendario/{fecha_str[:4]}/{int(fecha_str[5:7])}')
+        return jsonify({'status': 'error', 'message': 'La fecha o la hora tienen un formato inválido.'})
 
+    # --- Validación de Superposición ---
+    servicio_seleccionado = cursor.execute("SELECT nombre, duracion FROM servicios WHERE id = ? AND usuario_id = ?", (servicio_id, usuario_id_actual)).fetchone()
     duracion_servicio = servicio_seleccionado['duracion']
-    nombre_servicio = servicio_seleccionado['nombre']
-
+    TOLERANCIA_MINUTOS = 10 
     inicio_nuevo_turno = datetime.strptime(f"{fecha_str} {hora_str}", '%Y-%m-%d %H:%M')
     fin_nuevo_turno = inicio_nuevo_turno + timedelta(minutes=duracion_servicio + TOLERANCIA_MINUTOS)
-
+    
     turnos_existentes = cursor.execute("SELECT t.hora, s.duracion FROM turnos t JOIN servicios s ON t.servicio_id = s.id WHERE t.usuario_id = ? AND t.fecha = ?", (usuario_id_actual, fecha_str)).fetchall()
-
     for turno_existente in turnos_existentes:
         inicio_existente = datetime.strptime(f"{fecha_str} {turno_existente['hora']}", '%Y-%m-%d %H:%M')
         fin_existente = inicio_existente + timedelta(minutes=turno_existente['duracion'] + TOLERANCIA_MINUTOS)
-        
         if max(inicio_nuevo_turno, inicio_existente) < min(fin_nuevo_turno, fin_existente):
-            flash(f"Error: El horario se pisa con el turno de las {turno_existente['hora']}.")
             conn.close()
-            return redirect(f'/calendario/{fecha_str[:4]}/{int(fecha_str[5:7])}')
+            return jsonify({'status': 'error', 'message': f"Conflicto: el horario se superpone con el turno de las {turno_existente['hora']}."})
 
+    # --- Inserción en la Base de Datos ---
     cursor.execute(
         "INSERT INTO turnos (usuario_id, cliente_id, servicio_id, servicio_nombre, fecha, hora) VALUES (?, ?, ?, ?, ?, ?)",
-        (usuario_id_actual, cliente_id, servicio_id, nombre_servicio, fecha_str, hora_str)
+        (usuario_id_actual, cliente_id, servicio_id, servicio_seleccionado['nombre'], fecha_str, hora_str)
     )
     conn.commit()
     conn.close()
-    flash("¡Turno agendado con éxito!")
-    return redirect(f'/calendario/{fecha_str[:4]}/{int(fecha_str[5:7])}')
-
+    
+    return jsonify({'status': 'success', 'message': '¡Turno agendado con éxito!'})
 # --- RUTA DE ESTADÍSTICAS ---
 @app.route('/estadisticas')
 def ver_estadisticas():
