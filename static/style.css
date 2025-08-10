@@ -451,3 +451,14 @@ img { max-width: 100%; height: auto; } /* Regla de oro para imágenes responsiva
 .turno-form-container {
     flex-grow: 1; /* Ocupa el espacio restante */
 }
+
+/* ======================================= */
+/* ESTILOS PARA LA PÁGINA DE LOGIN         */
+/* ======================================= */
+.login-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; padding: 20px; box-sizing: border-box; }
+.login-logo { max-width: 150px; margin-bottom: 30px; }
+.login-form-card { background-color: var(--color-blanco); padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); border: 1px solid var(--color-borde-suave); width: 100%; max-width: 420px; text-align: left; }
+.login-form-card h2 { text-align: center; margin-top: 0; margin-bottom: 25px; border-bottom: none; }
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9em; }
+.form-group input, .form-group select { width: 100%; padding: 12px; border: 1px solid var(--color-borde-suave); border-radius: 5px; box-sizing: border-box; }
