@@ -13,19 +13,6 @@ try:
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
 
-    print("OK: Creando tabla 'usuarios'...")
-    cursor.execute('''
-        CREATE TABLE usuarios (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL, nombre_salon TEXT NOT NULL,
-            estado TEXT NOT NULL DEFAULT 'pendiente', fecha_vencimiento DATE,
-            meta_fidelizacion INTEGER DEFAULT 5,
-            -- NUEVA COLUMNA PARA EL LINK PÚBLICO --
-            url_salon TEXT UNIQUE
-        )
-    ''')
- 
-
     print("OK: Creando tabla 'clientes'...")
     cursor.execute('''
         CREATE TABLE clientes (
@@ -83,6 +70,17 @@ try:
             texto_mensaje TEXT NOT NULL,
             UNIQUE(usuario_id, tipo_mensaje),
             FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
+        )
+    ''')
+    print("OK: Creando tabla 'usuarios'...")
+    cursor.execute('''
+    CREATE TABLE usuarios (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL, nombre_salon TEXT NOT NULL,
+        estado TEXT NOT NULL DEFAULT 'pendiente', fecha_vencimiento DATE,
+        meta_fidelizacion INTEGER DEFAULT 5,
+        url_salon TEXT UNIQUE,
+        nombre_publico TEXT  -- <-- AGREGÁ ESTA LÍNEA
         )
     ''')
 

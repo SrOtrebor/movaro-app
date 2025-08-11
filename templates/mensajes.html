@@ -1,64 +1,75 @@
 {% extends "base.html" %}
 
-{% block title %}Mis Plantillas de Mensajes{% endblock %}
+{% block title %}Mis Mensajes y Plantillas{% endblock %}
 
 {% block content %}
-    <h1>Mis Plantillas de Mensajes</h1>
-    <p>
-        Creá, editá y eliminá tus plantillas de mensajes. Podés usar "variables" como 
-        <strong>{{nombre_cliente}}</strong> y el sistema las reemplazará automáticamente.
-    </p>
-    <hr>
-
+<form action="/mensajes" method="post">
     <div class="layout-container">
         <div class="layout-col-principal">
             <div class="card">
-                <h2>Mis Plantillas Guardadas</h2>
-                {% if plantillas %}
-                    <table class="stats-table tabla-responsiva">
-                        <thead>
-                            <tr>
-                                <th>Nombre de la Plantilla</th>
-                                <th>Texto</th>
-                                <th>Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for plantilla in plantillas %}
-                            <tr>
-                                <td data-label="Nombre"><strong>{{ plantilla.tipo_mensaje }}</strong></td>
-                                <td data-label="Texto" style="white-space: pre-wrap; word-break: break-word;">{{ plantilla.texto_mensaje }}</td>
-                                <td data-label="Acción">
-                                    <form action="/mensajes/borrar" method="post" onsubmit="return confirm('¿Estás segura de que querés eliminar esta plantilla?');">
-                                        <input type="hidden" name="plantilla_id" value="{{ plantilla.id }}">
-                                        <button type="submit" class="boton-accion" style="background-color: #dc3545;">Borrar</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                {% else %}
-                    <p>Aún no has creado ninguna plantilla de mensaje.</p>
-                {% endif %}
+                <h2>Mensajes Automáticos</h2>
+                <p>Editá los mensajes para las alertas que aparecen en el Panel de Control.</p>
+                
+                <div class="form-group">
+                    <label for="fijo_recordatorio"><strong>Recordatorio de Turno:</strong></label>
+                    <textarea id="fijo_recordatorio" name="fijo_recordatorio" rows="4" class="form-control">{{ mensajes_fijos.recordatorio }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="fijo_cumpleanos"><strong>Saludo de Cumpleaños:</strong></label>
+                    <textarea id="fijo_cumpleanos" name="fijo_cumpleanos" rows="4" class="form-control">{{ mensajes_fijos.cumpleanos }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="fijo_inactivo"><strong>Mensaje para Clientes Inactivos:</strong></label>
+                    <textarea id="fijo_inactivo" name="fijo_inactivo" rows="4" class="form-control">{{ mensajes_fijos.inactivo }}</textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="fijo_fidelizacion"><strong>Mensaje de Premio por Fidelización:</strong></label>
+                    <textarea id="fijo_fidelizacion" name="fijo_fidelizacion" rows="4" class="form-control">{{ mensajes_fijos.fidelizacion }}</textarea>
+                </div>
             </div>
         </div>
 
         <div class="layout-col-lateral">
+            <div class="card" style="margin-bottom: 25px;">
+                <h2>Crear Plantilla para Campañas</h2>
+                <p>Para usar en envíos masivos (ej: "Oferta de Verano").</p>
+                <div class="form-group">
+                    <label for="nombre_plantilla">Nombre de la Plantilla:</label>
+                    <input type="text" id="nombre_plantilla" name="nombre_plantilla" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="texto_plantilla">Texto del Mensaje:</label>
+                    <textarea id="texto_plantilla" name="texto_plantilla" rows="4" class="form-control"></textarea>
+                </div>
+            </div>
+            
             <div class="card">
-                <h2>Crear Nueva Plantilla</h2>
-                <form action="/mensajes/crear" method="post">
-                    <div class="form-group">
-                        <label for="nombre_plantilla">Nombre (ej: "Oferta de Verano"):</label>
-                        <input type="text" id="nombre_plantilla" name="nombre_plantilla" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="texto_plantilla">Texto del Mensaje:</label>
-                        <textarea id="texto_plantilla" name="texto_plantilla" rows="6" class="form-control" required></textarea>
-                    </div>
-                    <button type="submit">Crear Plantilla</button>
-                </form>
+                <h2>Mis Plantillas de Campañas</h2>
+                {% if plantillas_personalizadas %}
+                    <ul style="list-style: none; padding: 0;">
+                        {% for p in plantillas_personalizadas %}
+                            <li class="item-lista-accion">
+                                <span><strong>{{ p.tipo_mensaje }}</strong></span>
+                                <form action="/mensajes/borrar" method="post" onsubmit="return confirm('¿Seguro?');">
+                                    <input type="hidden" name="plantilla_id" value="{{ p.id }}">
+                                    <button type="submit" class="boton-accion" style="background-color:var(--color-rojo-peligro);">Borrar</button>
+                                </form>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No tenés plantillas para campañas.</p>
+                {% endif %}
             </div>
         </div>
     </div>
+    
+    <hr>
+    <div style="text-align: center;">
+        <button type="submit" style="padding: 15px 30px; font-size: 1.2em;">Guardar Todos los Cambios</button>
+    </div>
+</form>
 {% endblock %}

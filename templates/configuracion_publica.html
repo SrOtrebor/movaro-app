@@ -1,34 +1,73 @@
 {% extends "base.html" %}
+
 {% block title %}Mi Link Público{% endblock %}
 
 {% block content %}
-<h1>Mi Link Público para Agendar Turnos</h1>
-<p>
-    Configurá tu dirección web única que podrás compartir con tus Clientes.
-    Elegí un nombre corto y fácil de recordar (solo letras minúsculas, números y guiones).
-</p>
-<hr>
+<div class="card" style="max-width: 800px; margin: 20px auto;">
+    <h1>Mi Página Pública para Clientes</h1>
+    <p>
+        Configurá el nombre y la dirección web que verán tus clientes.
+    </p>
+    <hr>
 
-<form action="/configuracion_publica" method="post" class="form-section" style="max-width: 600px;">
+    <form action="/configuracion_publica" method="post" class="form-section" style="padding: 0; box-shadow: none; border: none;">
+        
+        <div class="form-group">
+            <label for="nombre_publico">Nombre a mostrar en tu página pública:</label>
+            <input type="text" id="nombre_publico" name="nombre_publico" value="{{ nombre_publico_actual }}" 
+                   placeholder="Ej: Salón de Belleza de Ana" required>
+        </div>
+
+        <div class="form-group">
+            <label for="url_salon">URL personalizada:</label>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <span style="font-size: 0.9em; color: #6c757d; white-space: nowrap;">{{ request.host_url }}publico/</span>
+                <input type="text" id="url_salon" name="url_salon" value="{{ url_actual }}" 
+                       placeholder="ej-salon-de-ana" required 
+                       pattern="[a-z0-9-]+" 
+                       title="Solo letras minúsculas, números y guiones.">
+            </div>
+        </div>
+        <button type="submit">Guardar Cambios</button>
+    </form>
+
+    {% if url_actual %}
+    <hr>
     <div class="form-group">
-        <label for="url_salon">Tu URL será: <strong>{{ request.host_url }}agendar/</strong></label>
-        <input type="text" id="url_salon" name="url_salon" value="{{ url_actual }}" 
-               placeholder="ej-mi-salon-de-unas" required 
-               pattern="[a-z0-9-]+" 
-               title="Solo letras minúsculas, números y guiones.">
+        <label>¡Link listo para compartir!</label>
+        <div style="display: flex; align-items: center; gap: 15px; background-color: #f8f9fa; padding: 15px; border-radius: 5px; border: 1px solid var(--color-borde-suave);">
+            <a id="public-link" href="{{ url_for('calendario_publico', url_salon=url_actual, _external=True) }}" target="_blank" style="word-break: break-all; flex-grow: 1;">
+                <strong>{{ url_for('calendario_publico', url_salon=url_actual, _external=True) }}</strong>
+            </a>
+            <button id="copy-button" class="boton-accion" style="flex-shrink: 0;">Copiar Link</button>
+        </div>
     </div>
-    <button type="submit">Guardar URL</button>
-</form>
+    {% endif %}
+</div>
 
-{% if url_actual %}
-<hr>
-<h3>¡Link listo para compartir!</h3>
-<p>Tu link público es (todavía no funciona, lo crearemos en el próximo paso):</p>
-<p>
-    <a href="#">
-        <strong>{{ request.host_url }}agendar/{{ url_actual }}</strong>
-    </a>
-</p>
-{% endif %}
+<script>
+    // Este script solo se activa si el botón de copiar existe
+    const copyButton = document.getElementById('copy-button');
+    if (copyButton) {
+        copyButton.addEventListener('click', () => {
+            const linkElement = document.getElementById('public-link');
+            const linkToCopy = linkElement.href;
 
-{% endblock %}
+            navigator.clipboard.writeText(linkToCopy).then(() => {
+                const originalText = copyButton.textContent;
+                copyButton.textContent = '¡Copiado!';
+                copyButton.style.backgroundColor = '#28a745';
+
+                setTimeout(() => {
+                    copyButton.textContent = originalText;
+                    copyButton.style.backgroundColor = '';
+                }, 2000);
+            }).catch(err => {
+                console.error('Error al copiar el texto: ', err);
+                alert('Error al copiar el link.');
+            });
+        });
+    }
+</script>
+
+{% endblock %} ```

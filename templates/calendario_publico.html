@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disponibilidad de Turnos - {{ nombre_salon }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <div class="container">
+        <div class="card">
+            <h1>{{ nombre_salon }}</h1>
+            
+            <div class="calendario-header">
+                <a href="/publico/{{ url_salon }}/{{ mes_anterior.year }}/{{ mes_anterior.month }}" class="boton-accion">‹ Mes Ant.</a>
+                <h2>{{ nombre_mes }} {{ ano }}</h2>
+                <a href="/publico/{{ url_salon }}/{{ mes_siguiente.year }}/{{ mes_siguiente.month }}" class="boton-accion">Mes Sig. ›</a>
+            </div>
+
+            <table class="calendario-tabla">
+                <thead>
+                    <tr><th>Lu</th><th>Ma</th><th>Mi</th><th>Ju</th><th>Vi</th><th>Sá</th><th>Do</th></tr>
+                </thead>
+                <tbody>
+                    {% for semana in dias_del_mes %}
+                    <tr>
+                        {% for dia in semana %}
+                            {% if dia == 0 %}
+                                <td class="dia-otro-mes"></td>
+                            {% else %}
+                                {% set info = info_dias.get(dia) %}
+                                <td class="celda-dia disponibilidad-{{ info.estado if info else 'dia-vacio' }}"
+                                    {% if info %}
+                                        data-horarios-ocupados="{{ info.horarios_ocupados | join(', ') }}"
+                                        data-horarios-disponibles="{{ info.horarios_disponibles | join(', ') }}"
+                                        data-fecha="{{ dia }}/{{ mes }}/{{ ano }}"
+                                        style="cursor: pointer;"
+                                    {% endif %}>
+                                    <div class="dia-numero">{{ dia }}</div>
+                                </td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="horarios-modal" class="modal-oculto"> <div class="modal-contenido"> <span class="modal-cerrar">&times;</span>
+            <h3>Disponibilidad del <span id="modal-fecha"></span></h3>
+            
+            <div id="disponibles-container">
+                <h4>Horarios Disponibles</h4>
+                <ul id="modal-lista-disponibles"></ul>
+            </div>
+            
+            <div id="ocupados-container" style="margin-top: 20px;">
+                <h4>Horarios Ocupados</h4>
+                <ul id="modal-lista-ocupados"></ul>
+            </div>
+        </div>
+    </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('horarios-modal');
+        const modalFecha = document.getElementById('modal-fecha');
+        const modalListaDisponibles = document.getElementById('modal-lista-disponibles');
+        const modalListaOcupados = document.getElementById('modal-lista-ocupados');
+        const disponiblesContainer = document.getElementById('disponibles-container');
+        const ocupadosContainer = document.getElementById('ocupados-container');
+        const spanCerrar = modal.querySelector('.modal-cerrar');
+
+        document.querySelectorAll('.celda-dia[data-fecha]').forEach(celda => {
+            celda.addEventListener('click', function() {
+                const fecha = this.dataset.fecha;
+                const horariosOcupados = this.dataset.horariosOcupados ? this.dataset.horariosOcupados.split(', ') : [];
+                const horariosDisponibles = this.dataset.horariosDisponibles ? this.dataset.horariosDisponibles.split(', ') : [];
+
+                modalFecha.textContent = fecha;
+                modalListaOcupados.innerHTML = '';
+                modalListaDisponibles.innerHTML = '';
+
+                // Llenar lista de DISPONIBLES
+                if (horariosDisponibles.length > 0 && horariosDisponibles[0] !== '') {
+                    disponiblesContainer.style.display = 'block';
+                    horariosDisponibles.forEach(horario => {
+                        const li = document.createElement('li');
+                        li.textContent = horario;
+                        li.style.backgroundColor = '#e6f9f0';
+                        modalListaDisponibles.appendChild(li);
+                    });
+                } else {
+                    disponiblesContainer.style.display = 'none';
+                }
+
+                // Llenar lista de OCUPADOS
+                if (horariosOcupados.length > 0 && horariosOcupados[0] !== '') {
+                    ocupadosContainer.style.display = 'block';
+                    horariosOcupados.forEach(horario => {
+                        const li = document.createElement('li');
+                        li.textContent = horario;
+                        li.style.backgroundColor = '#fef2f0';
+                        modalListaOcupados.appendChild(li);
+                    });
+                } else {
+                    ocupadosContainer.style.display = 'none';
+                }
+                
+                // Lógica de visibilidad corregida
+                modal.classList.remove('modal-oculto');
+                modal.classList.add('modal-visible');
+            });
+        });
+
+        // Lógica para cerrar el pop-up (igual a la del panel)
+        const cerrarModal = () => {
+            modal.classList.remove('modal-visible');
+            modal.classList.add('modal-oculto');
+        };
+
+        if (spanCerrar) {
+            spanCerrar.addEventListener('click', cerrarModal);
+        }
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                cerrarModal();
+            }
+        });
+    });
+</script>
+
+</body>
+</html>

@@ -1,61 +1,61 @@
 {% extends "base.html" %}
-
 {% block title %}Estadísticas del Negocio{% endblock %}
 
 {% block content %}
-
 <h1>Estadísticas del Negocio</h1>
 <p>Analizá el rendimiento de tu salón a lo largo del tiempo.</p>
 <hr>
 
 <div class="layout-container">
-    <div class="stats-card">
-        <h2>Turnos por Mes</h2>
-        {% if turnos_mes %}
-            <table class="stats-table tabla-responsiva">
-                <thead>
-                    <tr>
-                        <th>Mes</th>
-                        <th>Cantidad de Turnos</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for mes, cantidad in turnos_mes %}
+    <div class="layout-col-principal">
+        <div class="card">
+            <h2>Turnos por Mes</h2>
+            {% if turnos_mes %}
+                <table class="stats-table">
+                    <thead>
                         <tr>
-                            <td>{{ mes }}</td>
-                            <td>{{ cantidad }}</td>
+                            <th>Mes</th>
+                            <th>Cantidad de Turnos</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p>Aún no hay suficientes datos para mostrar.</p>
-        {% endif %}
+                    </thead>
+                    <tbody>
+                        {% for mes, cantidad in turnos_mes %}
+                            <tr>
+                                <td>{{ mes }}</td>
+                                <td>{{ cantidad }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No hay datos suficientes.</p>
+            {% endif %}
+        </div>
     </div>
-
-    <div class="stats-card">
-        <h2>Popularidad de Servicios</h2>
-        {% if servicios_pop %}
-            <table class="stats-table tabla-responsiva">
-                <thead>
-                    <tr>
-                        <th>Servicio</th>
-                        <th>Veces Realizado</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for servicio, cantidad in servicios_pop %}
+    <div class="layout-col-lateral">
+        <div class="card">
+            <h2>Popularidad de Servicios</h2>
+            {% if servicios_pop %}
+                <table class="stats-table">
+                    <thead>
                         <tr>
-                            <td>{{ servicio }}</td>
-                            <td>{{ cantidad }}</td>
+                            <th>Servicio</th>
+                            <th>Veces Realizado</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-             <p>Aún no hay suficientes datos para mostrar.</p>
-        {% endif %}
+                    </thead>
+                    <tbody>
+                        {% for servicio, cantidad in servicios_pop %}
+                            <tr>
+                                <td>{{ servicio }}</td>
+                                <td>{{ cantidad }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No hay datos suficientes.</p>
+            {% endif %}
+        </div>
     </div>
 </div>
-
 {% endblock %}

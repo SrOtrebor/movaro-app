@@ -1,5 +1,5 @@
 /* ======================================= */
-/* ESTILOS GENERALES              */
+/* VARIABLES Y ESTILOS GENERALES           */
 /* ======================================= */
 :root {
     --color-primario: #C75F51;
@@ -15,11 +15,13 @@ body {
     margin: 0;
     background-color: var(--color-fondo);
     color: var(--color-texto);
+    line-height: 1.6;
 }
 .container {
-    max-width: 1400px;
+    max-width: 95%; /* Ancho fluido para aprovechar la pantalla */
     margin: 20px auto;
     padding: 0 20px;
+    box-sizing: border-box;
 }
 a { color: var(--color-primario); text-decoration: none; font-weight: bold; }
 a:hover { text-decoration: underline; }
@@ -32,12 +34,14 @@ button, .boton-accion {
     cursor: pointer;
     font-size: 1em;
     font-weight: bold;
+    text-align: center;
 }
+button:hover, .boton-accion:hover { opacity: 0.85; }
 hr { border: none; border-top: 1px solid var(--color-borde-suave); margin: 25px 0; }
-img { max-width: 100%; height: auto; } /* Regla de oro para imágenes responsivas */
+img { max-width: 100%; height: auto; }
 
 /* ======================================= */
-/* BARRA DE NAVEGACIÓN            */
+/* BARRA DE NAVEGACIÓN                     */
 /* ======================================= */
 .navbar {
     background-color: var(--color-primario);
@@ -46,430 +50,173 @@ img { max-width: 100%; height: auto; } /* Regla de oro para imágenes responsiva
     align-items: center;
     justify-content: space-between;
 }
-.navbar .links a {
-    color: var(--color-fondo);
-    margin-left: 25px;
-    font-weight: bold;
+.navbar .brand img {
+    height: 40px; /* Altura fija para el logo */
+    width: auto;
 }
+.navbar .links { display: flex; align-items: center; }
+.navbar .links a { color: var(--color-fondo); margin-left: 25px; font-weight: bold; }
 .hamburger { display: none; background: none; border: none; color: var(--color-fondo); font-size: 2.5em; cursor: pointer; }
 
 /* ======================================= */
-/* COMPONENTES Y LAYOUT           */
+/* LAYOUT, CARDS Y FORMULARIOS             */
 /* ======================================= */
 .layout-container { display: flex; flex-direction: row; gap: 30px; }
-.layout-col-principal { flex: 1; min-width: 0; }
-.layout-col-lateral { width: 350px; flex-shrink: 0; }
+.layout-col-principal { /* Columna de Alertas */
+    flex: 4; /* Proporción de 4 sobre 10 (40%) */
+    min-width: 0;
+}
+.layout-col-lateral { /* Columna de Calendario/Config */
+    flex: 6; /* Proporción de 6 sobre 10 (60%) */
+    min-width: 0;
+}
+.card { background-color: var(--color-blanco); padding: 20px 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.form-section { background-color: var(--color-blanco); padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
+.form-group input, .form-group select, .form-control { width: 100%; padding: 12px; border: 1px solid var(--color-borde-suave); border-radius: 5px; box-sizing: border-box; font-size: 1em; }
 
-.alerta { padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid transparent; }
-.alerta h3 { margin-top: 0; }
-.alerta ul { padding-left: 20px; margin: 0; }
-.flash-success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
-.flash-error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
-.alerta-turno { background-color: #cce5ff; color: #004085; border-color: #b8daff; }
+/* ======================================= */
+/* ESTILOS ESPECÍFICOS PARA EL PANEL       */
+/* ======================================= */
+.alerta { padding: 15px; margin-bottom: 15px; border-radius: 6px; border: 1px solid transparent; }
+.alerta h3 { margin-top: 0; margin-bottom: 10px; font-size: 1.1em; }
+.alerta ul { list-style: none; padding-left: 0; margin: 0; }
+.alerta li { padding: 10px 0; border-top: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+.alerta li:first-child { border-top: none; }
 .alerta-cumple { background-color: #fff3cd; color: #856404; border-color: #ffeeba; }
+.alerta-turno { background-color: #cce5ff; color: #004085; border-color: #b8daff; }
 .alerta-inactivo { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
 .alerta-vencimiento { background-color: #fff3cd; color: #856404; border-color: #ffeeba; }
+.alerta-fidelizacion { background-color: #e8dff5; border-color: #d6bbfb; color: #5a189a; }
+.grupo-botones-accion { display: flex; gap: 10px; align-items: center; }
+.grupo-botones-accion form { margin: 0; }
+.mini-calendario { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+.mini-calendario th, .mini-calendario td { padding: 8px; text-align: center; height: 45px; border: 1px solid var(--color-borde-suave); }
+.config-fidelizacion { display: flex; gap: 10px; align-items: center; }
 
 /* ======================================= */
-/* TABLAS Y CALENDARIO            */
+/* CALENDARIO PÚBLICO Y OTROS              */
 /* ======================================= */
-.stats-table, .mini-calendario { width: 100%; border-collapse: collapse; }
-.stats-table th, .stats-table td, .mini-calendario th, .mini-calendario td {
-    text-align: left;
-    padding: 12px;
-    border: 1px solid var(--color-borde-suave);
-}
-.stats-table tbody tr { background-color: var(--color-blanco); }
-.stats-table tbody tr:hover { background-color: #fafafa; }
-
-.acciones-admin { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.acciones-admin > form { margin: 0; }
-
-.calendario-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.calendario-tabla { width: 100%; border-collapse: collapse; }
-.calendario-tabla th, .calendario-tabla td { padding: 8px; text-align: left; vertical-align: top; height: 90px; border: 1px solid var(--color-borde-suave); }
-.celda-dia:hover { background-color: #e9ecef; }
-.turnos-lista { font-size: 0.8em; margin-top: 5px; padding-left: 5px; list-style-type: none; margin-left: 0; }
-.turnos-lista li { background-color: var(--color-primario); color: var(--color-blanco); padding: 2px 5px; border-radius: 3px; margin-bottom: 3px; }
-.dia-hoy .dia-numero { background-color: var(--color-primario); color: var(--color-blanco); border-radius: 50%; width: 25px; height: 25px; display: inline-flex; align-items: center; justify-content: center; }
+.login-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; padding: 20px; box-sizing: border-box; }
+.login-logo { max-width: 150px; margin-bottom: 30px; }
+.login-form-card { background-color: var(--color-blanco); padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--color-borde-suave); width: 100%; max-width: 420px; text-align: left; }
+.login-form-card h2 { text-align: center; margin-top: 0; margin-bottom: 25px; border-bottom: none; }
+.celda-dia { position: relative; } /* POSICIÓN PARA EL BOTÓN '+' */
 
 /* ======================================= */
-/* ESTILOS DEL MODAL (POP-UP)     */
+/* MODAL (POP-UP)                          */
 /* ======================================= */
 .modal-oculto { display: none; }
 .modal-visible { display: flex; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
-.modal-contenido { background-color: var(--color-blanco); padding: 30px; border-radius: var(--border-radius); width: 90%; max-width: 500px; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+.modal-contenido { background-color: var(--color-blanco); padding: 35px; border-radius: 16px; width: 90%; max-width: 650px; position: relative; }
 .modal-cerrar { color: #aaa; position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; }
+#modal-turno .form-group { margin-bottom: 25px; }
 
 /* ======================================= */
-/* CÓDIGO RESPONSIVO              */
+/* CALENDARIO PRINCIPAL (AGENDA)           */
+/* ======================================= */
+.calendario-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px; }
+.calendario-header h2 { font-size: 1.8em; margin: 0; padding: 0; border-bottom: none; text-align: center; white-space: nowrap; }
+.calendario-header a { flex-shrink: 0; white-space: nowrap; }
+.calendario-tabla { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.calendario-tabla th { font-weight: 500; padding: 10px 0; font-size: 0.9em; text-align: center; }
+.calendario-tabla td { border: 1px solid var(--color-borde-suave); height: 100px; padding: 4px; vertical-align: top; }
+.calendario-tabla td:hover { background-color: #fefae0; }
+.turnos-lista { list-style: none; padding: 0; margin: 4px 0 0 0; }
+.turnos-lista li { background-color: var(--color-primario); color: var(--color-blanco); padding: 2px 4px; border-radius: 3px; font-size: 0.7em; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.boton-agregar-turno { width: 28px; height: 28px; font-size: 1.4em; line-height: 28px; padding: 0; border-radius: 50%; background-color: var(--color-secundario); position: absolute; top: 8px; right: 8px; opacity: 0.6; transform: scale(0.9); transition: all 0.2s ease-in-out; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.celda-dia:hover .boton-agregar-turno { opacity: 1; transform: scale(1.1); }
+
+
+/* ======================================= */
+/* CÓDIGO RESPONSIVO                       */
 /* ======================================= */
 @media (max-width: 900px) {
-    /* Menú hamburguesa */
     .navbar { flex-wrap: wrap; }
     .navbar .links { display: none; flex-direction: column; width: 100%; text-align: center; order: 3; padding: 15px 0; }
     .navbar .links.active { display: flex; }
     .navbar .hamburger { display: block; order: 2; }
     .navbar .brand { order: 1; }
 
-    /* Layouts de columnas */
     .layout-container { flex-direction: column; }
     .layout-col-principal, .layout-col-lateral { width: 100%; }
 
-    /* Tablas responsivas */
-    .tabla-responsiva { border: 0; }
-    .tabla-responsiva thead { border: none; clip: rect(0 0 0 0); height: 1px; margin: -1px; overflow: hidden; padding: 0; position: absolute; width: 1px; }
-    .tabla-responsiva tr { border: 1px solid var(--color-borde-suave); display: block; margin-bottom: 15px; border-radius: 5px; }
-    .tabla-responsiva td { display: block; text-align: right; border-bottom: 1px dotted var(--color-borde-suave); padding: 10px; }
-    .tabla-responsiva td:last-child { border-bottom: 0; }
-    .tabla-responsiva td::before { content: attr(data-label); float: left; font-weight: bold; text-transform: uppercase; }
-    .acciones-admin { justify-content: flex-end; } /* Alinea botones a la derecha en móvil */
-
-   
-}
-/* AJUSTE PARA TURNOS */
-.turnos-lista li {
-    padding: 4px 8px; /* Más espacio interno */
-    margin-right: 4px; /* Un poco de aire a la derecha */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* AJUSTE PARA BOTONES DE NAVEGACIÓN DEL CALENDARIO */
-.calendario-header a {
-    background-color: var(--color-secundario);
-    color: var(--color-blanco);
-    padding: 8px 15px;
-    border-radius: 5px;
-    text-decoration: none;
-}
-.calendario-header a:hover {
-    opacity: 0.85;
-}
-
-/* AJUSTE PARA TÍTULO DEL CALENDARIO */
-.calendario-header h2 {
-    font-size: 2em; /* Letra más grande */
-    color: var(--color-texto);
-}
-
-/* ======================================= */
-/* AJUSTES PARA EL POP-UP (MÁS GRANDE Y ESPACIADO) */
-/* ======================================= */
-
-.modal-contenido {
-    max-width: 650px; /* Hacemos el cuadro más ancho */
-    border-radius: 16px; /* Puntas más redondeadas */
-    padding: 35px; /* Un poco más de espacio interno */
-}
-
-/* Más espacio entre cada línea del formulario del pop-up */
-#modal-turno .form-group {
-    margin-bottom: 25px; 
-}
-
-/* ======================================= */
-/* AJUSTES PARA EL CALENDARIO Y BOTÓN '+' (CORREGIDO Y SIEMPRE VISIBLE) */
-/* ======================================= */
-
-/* Hacemos el botón '+' más chico, circular y delicado */
-.boton-agregar-turno {
-    width: 28px;
-    height: 28px;
-    font-size: 1.4em;
-    line-height: 28px;
-    padding: 0;
-    border-radius: 50%; /* Círculo perfecto */
-    background-color: var(--color-secundario);
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    
-    /* === LA CORRECCIÓN ESTÁ AQUÍ === */
-    opacity: 0.6; /* Hacemos que sea visible pero sutil por defecto */
-    transform: scale(0.9); /* Un poco más chico por defecto */
-    transition: all 0.2s ease-in-out; /* Mantenemos la animación suave */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.celda-dia {
-    position: relative;
-}
-
-.celda-dia:hover .boton-agregar-turno {
-    opacity: 1; /* Totalmente visible y más grande al pasar el mouse */
-    transform: scale(1.1); /* Efecto sutil de crecimiento */
-}
-
-/* ======================================= */
-/* CÓDIGO RESPONSIVO COMPLETO Y CORRECTO   */
-/* ======================================= */
-@media (max-width: 900px) {
-    /* --- MENÚ HAMBURGUESA --- */
-    .navbar { flex-wrap: wrap; }
-    .navbar .links { display: none; flex-direction: column; width: 100%; text-align: center; order: 3; padding: 15px 0; }
-    .navbar .links.active { display: flex; }
-    .navbar .hamburger { display: block; order: 2; }
-    .navbar .brand { order: 1; }
-
-    /* --- LAYOUT DE COLUMNAS --- */
-    .layout-container { flex-direction: column; }
-    .layout-col-principal, .layout-col-lateral { width: 100%; }
-
-    /* --- TABLAS RESPONSIVAS (Para Superadmin, Clientes, etc.) --- */
     .tabla-responsiva { border: 0; }
     .tabla-responsiva thead { display: none; }
     .tabla-responsiva tr { border: 1px solid var(--color-borde-suave); display: block; margin-bottom: 15px; border-radius: 5px; }
     .tabla-responsiva td { display: block; text-align: right; border-bottom: 1px dotted var(--color-borde-suave); padding: 10px; }
     .tabla-responsiva td:last-child { border-bottom: 0; }
     .tabla-responsiva td::before { content: attr(data-label); float: left; font-weight: bold; text-transform: uppercase; }
+    
+    .calendario-header h2 { font-size: 1.1em; }
+    .calendario-header a { font-size: 0.8em; padding: 5px 8px; }
+    .calendario-tabla td { height: 70px; }
+    .boton-agregar-turno { display: none; }
+}
 
-    /* ======================================= */
-/* CALENDARIO RESPONSIVO EN FORMATO MES    */
+/* ======================================= */
+/* ESTILOS PARA CALENDARIO PÚBLICO INTERACTIVO */
 /* ======================================= */
 
-/* --- Cabezal del Calendario (Título y Botones) --- */
-.calendario-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center; /* ¡Esta es la clave para la alineación! */
-    margin-bottom: 20px;
-    gap: 15px; /* Un poco de espacio entre elementos */
+/* Colores de Disponibilidad */
+.disponibilidad-disponible { /* Alta disponibilidad */
+    background-color: #e6f9f0; 
+}
+.disponibilidad-poca-disponibilidad { /* Media disponibilidad */
+    background-color: #fffbeb;
+}
+.disponibilidad-sin-disponibilidad { /* Baja o nula disponibilidad */
+    background-color: #fef2f0;
+    color: #b0a9a9; /* Hacemos el número más tenue */
 }
 
-.calendario-header h2 {
-    font-size: 1.8em;
-    margin: 0;
-    padding: 0;
-    border-bottom: none;
-    text-align: center;
-    /* Evita que el título empuje a los botones si es muy largo */
-    white-space: nowrap; 
-}
-
-.calendario-header a {
-    /* Evita que los botones se achiquen o se partan en dos líneas */
-    flex-shrink: 0;
-    white-space: nowrap;
-}
-
-/* --- Cuerpo del Calendario (La Grilla) --- */
-.calendario-tabla {
+/* Estilos para el Pop-up de Horarios Ocupados */
+.public-modal {
+    display: none; /* Oculto por defecto */
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
     width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed; /* Fuerza a que las columnas tengan el mismo ancho */
+    height: 100%;
+    background-color: rgba(0,0,0,0.6);
+    justify-content: center;
+    align-items: center;
 }
-
-.calendario-tabla th {
-    font-weight: 500;
-    padding: 10px 0;
-    font-size: 0.9em;
+.public-modal-contenido {
+    background-color: var(--color-blanco);
+    padding: 25px 30px;
+    border-radius: var(--border-radius);
+    width: 90%;
+    max-width: 400px;
     text-align: center;
-    color: var(--color-texto-suave);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
 }
-
-.calendario-tabla td {
-    border: 1px solid var(--color-borde);
-    height: 100px;
-    padding: 4px;
-    vertical-align: top;
-    transition: background-color 0.2s;
+.public-modal-contenido h3 {
+    margin-top: 0;
 }
-
-.calendario-tabla td:hover {
-    background-color: #fefae0; /* Un color suave al pasar el mouse */
-}
-
-.dia-numero {
-    font-size: 0.8em;
-    font-weight: 500;
-}
-
-/* Ocultamos días de otros meses para un look más limpio */
-.dia-otro-mes {
-    background-color: #f8f9fa;
-    color: #ccc;
-}
-
-.turnos-lista {
+.public-modal-contenido ul {
     list-style: none;
     padding: 0;
-    margin: 4px 0 0 0;
-}
-
-.turnos-lista li {
-    background-color: var(--color-primario);
-    color: var(--color-blanco);
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-size: 0.7em; /* Letra de turnos más pequeña */
-    margin-bottom: 3px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis; /* Pone '...' si el texto es muy largo */
-}
-
-/* --- Adaptación para Móviles --- */
-@media (max-width: 768px) {
-    .calendario-header h2 {
-        font-size: 1.1em; /* Título más chico para que entre bien */
-    }
-    .calendario-header a {
-        font-size: 0.8em;
-        padding: 5px 8px;
-    }
-}
-
-    /* Reducimos el tamaño de todo dentro de la grilla */
-    .calendario-tabla th {
-        font-size: 0.7em; /* Nombres de días (L, M, M...) más chicos */
-        padding: 8px 0;
-    }
-
-    .calendario-tabla td {
-        height: 70px; /* Celdas mucho más bajas */
-        padding: 2px;
-    }
-    
-    .dia-numero {
-        font-size: 0.7em;
-    }
-
-    .turnos-lista li {
-        font-size: 0.6em; /* Letra de turnos diminuta */
-        padding: 1px 3px;
-        border-radius: 2px;
-    }
-}
-
-/* ======================================= */
-/* AJUSTE PARA EL TAMAÑO DEL LOGO EN NAVBAR */
-/* ======================================= */
-.navbar .brand img {
-    height: 40px; /* Definimos una altura fija para el logo */
-    width: auto;  /* Dejamos que el ancho se ajuste solo para no deformarlo */
-}
-
-/* OCULTAR EL BOTÓN '+' EN DISPOSITIVOS MÓVILES */
-@media (max-width: 900px) {
-    .boton-agregar-turno {
-        display: none;
-    }
-}
-
-/* ======================================= */
-/* AJUSTES PARA EL HEADER DEL CALENDARIO EN MÓVIL */
-/* ======================================= */
-@media (max-width: 900px) {
-    .calendario-header {
-        flex-direction: column; /* Apilamos los elementos verticalmente */
-        align-items: center; /* Centramos los elementos */
-        gap: 10px; /* Espacio entre elementos */
-    }
-
-    .calendario-header h2 {
-        font-size: 1em; /* Título del mes más pequeño */
-        margin-bottom: 0; /* Quitamos margen inferior */
-    }
-
-    .calendario-header a {
-        font-size: 0.6em; /* Botones más pequeños */
-        padding: 6px 10px; /* Menos relleno */
-    }
-}
-
-/* ======================================= */
-/* CORRECCIÓN DEFINITIVA PARA HEADER DEL CALENDARIO */
-/* ======================================= */
-.calendario-header {
-    display: flex !important;
-    flex-direction: row !important; /* Forzamos la dirección horizontal */
-    justify-content: space-between !important;
-    align-items: center !important; /* Alineación vertical perfecta */
-    gap: 10px;
-    padding: 10px 0; /* Agregamos un poco de espacio vertical */
-}
-
-.calendario-header h2 {
-    font-size: 1.5em; /* Tamaño base del título */
-    white-space: nowrap;
-    margin: 0;
-    padding: 0;
-    border: none;
-}
-
-/* Ajuste solo para móviles */
-@media (max-width: 768px) {
-    .calendario-header h2 {
-        font-size: 1.1em; /* Título más chico en móvil */
-    }
-    .calendario-header a {
-        font-size: 0.8em; /* Botones más chicos en móvil */
-        padding: 5px 8px;
-    }
-}
-
-/* ======================================= */
-/* ESTILOS ESPECÍFICOS PARA DETALLE_CLIENTE.HTML */
-/* ======================================= */
-
-.detalle-cliente-header {
-    text-align: center;
     margin-bottom: 20px;
 }
-
-.avatar-img {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 3px solid var(--color-borde);
-    box-shadow: var(--sombra-suave);
-}
-
-.turno-card {
-    margin-bottom: 25px;
-}
-
-.turno-media-container {
-    display: flex;
-    gap: 25px;
-    align-items: flex-start;
-}
-
-.turno-foto-container {
-    flex-basis: 200px; /* Ancho base para la foto */
-    flex-shrink: 0;
-}
-
-.turno-foto {
-    border-radius: var(--border-radius);
-    width: 100%;
-}
-
-.turno-form-container {
-    flex-grow: 1; /* Ocupa el espacio restante */
+.public-modal-contenido li {
+    background-color: #f8f9fa;
+    padding: 8px;
+    border-radius: 5px;
+    margin-bottom: 8px;
+    font-weight: 500;
 }
 
 /* ======================================= */
-/* ESTILOS PARA LA PÁGINA DE LOGIN         */
+/* CORRECCIÓN PARA EL MINI-CALENDARIO DEL PANEL */
 /* ======================================= */
-.login-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; padding: 20px; box-sizing: border-box; }
-.login-logo { max-width: 150px; margin-bottom: 30px; }
-.login-form-card { background-color: var(--color-blanco); padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); border: 1px solid var(--color-borde-suave); width: 100%; max-width: 420px; text-align: left; }
-.login-form-card h2 { text-align: center; margin-top: 0; margin-bottom: 25px; border-bottom: none; }
-.form-group { margin-bottom: 20px; }
-.form-group label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9em; }
-.form-group input, .form-group select { width: 100%; padding: 12px; border: 1px solid var(--color-borde-suave); border-radius: 5px; box-sizing: border-box; }
 
-     .form-control {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--color-borde-suave);
-            border-radius: 5px;
-            box-sizing: border-box;
-            font-size: 1em;
-            font-family: inherit; /* Usa la misma fuente que el resto de la web */
-            resize: vertical; /* Permite que el usuario agrande el cuadro verticalmente */
-        }
+/* Pinta de color los días con turnos en el mini-calendario */
+.mini-calendario .dia-ocupado {
+    background-color: #fcebe8; /* Un color rojo suave */
+    font-weight: bold;
+    border-radius: 5px; /* Redondeamos un poco la celda */
+}
+

@@ -11,7 +11,12 @@ from collections import Counter
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
-
+MENSAJES_FIJOS = {
+    'recordatorio': "¡Hola {{nombre_cliente}}! Te recuerdo tu turno para {{servicio_nombre}} mañana a las {{hora_turno}}. ¡Te espero!",
+    'cumpleanos': "¡Feliz cumpleaños, {{nombre_cliente}}! 🎂 Que tengas un día genial.",
+    'inactivo': "¡Hola, {{nombre_cliente}}! ¿Cómo estás? Hace tiempo no nos vemos.",
+    'fidelizacion': "¡Hola, {{nombre_cliente}}! ✨ ¡Alcanzaste los {{total_turnos}} servicios y te ganaste un premio!"
+}
 app = Flask(__name__)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax' # <-- AGREGÁ ESTA LÍNEA
 app.secret_key = 'mi_clave_secreta_super_dificil_v2' # Esta línea ya la tenés
@@ -36,7 +41,8 @@ def admin_required(f):
 
 @app.route('/configuracion_publica', methods=['GET', 'POST'])
 def configuracion_publica():
-    if 'usuario_id' not in session: return redirect('/login')
+    if 'usuario_id' not in session: 
+        return redirect('/login')
     
     usuario_id_actual = session['usuario_id']
     conn = sqlite3.connect(DATABASE)
@@ -44,32 +50,36 @@ def configuracion_publica():
     cursor = conn.cursor()
 
     if request.method == 'POST':
-        # Obtenemos y limpiamos la URL que mandó la usuaria
         url_salon = request.form['url_salon'].lower().strip()
-        # Aquí se podrían agregar más validaciones (sin espacios, caracteres especiales, etc.)
-        
+        nombre_publico = request.form['nombre_publico'].strip()
+
         try:
-            # Intentamos guardar la nueva URL en la base de datos
-            cursor.execute("UPDATE usuarios SET url_salon = ? WHERE id = ?",
-                           (url_salon, usuario_id_actual))
+            cursor.execute("UPDATE usuarios SET url_salon = ?, nombre_publico = ? WHERE id = ?",
+                           (url_salon, nombre_publico, usuario_id_actual))
             conn.commit()
-            flash("¡URL pública guardada con éxito!", "success")
+            flash("¡Tu página pública fue guardada con éxito!", "success")
         except sqlite3.IntegrityError:
-            # Este error salta si la URL ya está en uso (porque la definimos como UNIQUE)
-            flash("Error: Esa dirección ya está en uso por otro salón. Por favor, elegí otra.", "error")
+            flash("Error: Esa dirección URL ya está en uso por otro salón.", "error")
         
         conn.close()
         return redirect('/configuracion_publica')
 
-    # Si no es POST, simplemente mostramos la URL que ya está guardada
-    cursor.execute("SELECT url_salon FROM usuarios WHERE id = ?", (usuario_id_actual,))
+    # --- LÓGICA GET (AQUÍ ESTÁ LA CORRECCIÓN) ---
+    cursor.execute("SELECT url_salon, nombre_publico, nombre_salon FROM usuarios WHERE id = ?", (usuario_id_actual,))
     usuario = cursor.fetchone()
     conn.close()
-    
-    url_actual = usuario['url_salon'] if (usuario and usuario['url_salon']) else ""
-    
-    return render_template('configuracion_publica.html', url_actual=url_actual)
 
+    # Primero, nos aseguramos de que el usuario exista en la base de datos
+    if usuario:
+        url_actual = usuario['url_salon'] if usuario['url_salon'] else ""
+        nombre_publico_actual = usuario['nombre_publico'] if usuario['nombre_publico'] else usuario['nombre_salon']
+    else:
+        # Si el usuario de la sesión no se encuentra, es una sesión "fantasma".
+        # Lo mejor es limpiar la sesión y forzar un nuevo login.
+        flash("Hubo un error al cargar tus datos, por favor iniciá sesión de nuevo.", "error")
+        return redirect('/logout')
+
+    return render_template('configuracion_publica.html', url_actual=url_actual, nombre_publico_actual=nombre_publico_actual)
 # --- RUTAS PRINCIPALES Y DE AUTENTICACIÓN ---
 @app.route('/')
 def inicio_v2():
@@ -139,6 +149,9 @@ def logout():
     return redirect('/login')
 
 # --- PANEL DE CONTROL DE USUARIO (COMPLETO Y CORRECTO) ---
+# Asegúrate de que urllib.parse esté importado al principio de tu app.py
+import urllib.parse
+
 @app.route('/panel', methods=['GET', 'POST'])
 def panel_control():
     if 'usuario_id' not in session: return redirect('/login')
@@ -148,15 +161,21 @@ def panel_control():
     cursor = conn.cursor()
 
     if request.method == 'POST':
-        nueva_meta = request.form['meta_fidelizacion']
-        cursor.execute("UPDATE usuarios SET meta_fidelizacion = ? WHERE id = ?", (nueva_meta, usuario_id_actual))
-        conn.commit()
-        flash("¡Configuración de fidelización guardada!", "success")
+        nueva_meta = request.form.get('meta_fidelizacion')
+        if nueva_meta:
+            cursor.execute("UPDATE usuarios SET meta_fidelizacion = ? WHERE id = ?", (nueva_meta, usuario_id_actual))
+            conn.commit()
         conn.close()
+        flash("¡Configuración de fidelización guardada!", "success")
         return redirect('/panel')
 
-    # --- LÓGICA GET COMPLETA PARA MOSTRAR TODO ---
+    # --- LÓGICA GET MEJORADA ---
     
+    # 1. Buscamos las plantillas de mensajes del usuario
+    cursor.execute("SELECT tipo_mensaje, texto_mensaje FROM plantillas_mensajes WHERE usuario_id = ?", (usuario_id_actual,))
+    plantillas_db = {row['tipo_mensaje']: row['texto_mensaje'] for row in cursor.fetchall()}
+    
+    # 2. Obtenemos datos del usuario, clientes, etc.
     cursor.execute("SELECT * FROM usuarios WHERE id = ?", (usuario_id_actual,))
     usuario = cursor.fetchone()
     meta_fidelizacion = int(usuario['meta_fidelizacion']) if usuario and usuario['meta_fidelizacion'] else 5
@@ -175,43 +194,56 @@ def panel_control():
     
     todos_mis_clientes = cursor.execute("SELECT * FROM clientes WHERE usuario_id = ?", (usuario_id_actual,)).fetchall()
     
+    # --- 3. GENERAMOS TODAS LAS ALERTAS USANDO LAS PLANTILLAS ---
+    
     # Alerta de Cumpleaños
-    hoy_str_mmdd = hoy.strftime('%m-%d')
     cumpleaneras = []
+    plantilla_cumple = plantillas_db.get('cumpleanos', "¡Feliz cumpleaños, {{nombre_cliente}}! 🎂")
     for clienta in todos_mis_clientes:
-        if clienta['cumpleanos'] and clienta['cumpleanos'][5:] == hoy_str_mmdd:
+        if clienta['cumpleanos'] and clienta['cumpleanos'][5:] == hoy.strftime('%m-%d'):
             clienta_dict = dict(clienta)
             telefono_local = (clienta['telefono'] or '').strip()
             clienta_dict['telefono_wa'] = "549" + telefono_local if len(telefono_local) >= 10 else telefono_local
+            mensaje_personalizado = plantilla_cumple.replace("{{nombre_cliente}}", clienta['nombre'])
+            clienta_dict['mensaje_wa'] = urllib.parse.quote_plus(mensaje_personalizado)
             cumpleaneras.append(clienta_dict)
 
     # Alerta de Turnos para Mañana
-    manana = hoy + timedelta(days=1)
-    manana_str = manana.strftime('%Y-%m-%d')
-    turnos_manana_db = cursor.execute("SELECT t.*, c.nombre, c.apellido, c.telefono FROM turnos t JOIN clientes c ON t.cliente_id = c.id WHERE t.usuario_id = ? AND t.fecha = ?", (usuario_id_actual, manana_str)).fetchall()
     turnos_manana = []
+    plantilla_recordatorio = plantillas_db.get('recordatorio', "Hola {{nombre_cliente}}, te recuerdo tu turno mañana a las {{hora_turno}}.")
+    manana_str = (hoy + timedelta(days=1)).strftime('%Y-%m-%d')
+    turnos_manana_db = cursor.execute("SELECT t.*, c.nombre, c.apellido, c.telefono FROM turnos t JOIN clientes c ON t.cliente_id = c.id WHERE t.usuario_id = ? AND t.fecha = ?", (usuario_id_actual, manana_str)).fetchall()
     for turno in turnos_manana_db:
         turno_dict = dict(turno)
         turno_dict['cliente_nombre'] = f"{turno['nombre']} {turno['apellido']}"
         telefono_local = (turno['telefono'] or '').strip()
         turno_dict['cliente_telefono_wa'] = "549" + telefono_local if len(telefono_local) >= 10 else telefono_local
+        
+        mensaje_personalizado = plantilla_recordatorio.replace("{{nombre_cliente}}", turno['nombre'])
+        mensaje_personalizado = mensaje_personalizado.replace("{{hora_turno}}", turno['hora'])
+        mensaje_personalizado = mensaje_personalizado.replace("{{servicio_nombre}}", turno['servicio_nombre'])
+        turno_dict['mensaje_wa'] = urllib.parse.quote_plus(mensaje_personalizado)
         turnos_manana.append(turno_dict)
     
     # Alerta de Clientes Inactivos
     clientes_inactivos = []
+    plantilla_inactivo = plantillas_db.get('inactivo', "¡Hola, {{nombre_cliente}}! Hace tiempo no nos vemos.")
     fecha_limite = hoy - timedelta(days=30)
     ultimo_turno_por_cliente = {row['cliente_id']: row['ultima_fecha'] for row in cursor.execute("SELECT cliente_id, MAX(fecha) as ultima_fecha FROM turnos WHERE usuario_id = ? GROUP BY cliente_id", (usuario_id_actual,)).fetchall()}
     for clienta in todos_mis_clientes:
         ultima_fecha_str = ultimo_turno_por_cliente.get(clienta['id'])
-        if ultima_fecha_str and (datetime.strptime(ultima_fecha_str, '%Y-%m-%d') < fecha_limite):
+        if ultima_fecha_str and (datetime.strptime(ultima_fecha_str, '%Y-%m-%d').date() < fecha_limite.date()):
             clienta_dict = dict(clienta)
             telefono_local = (clienta['telefono'] or '').strip()
             clienta_dict['telefono_wa'] = "549" + telefono_local if len(telefono_local) >= 10 else telefono_local
+            mensaje_personalizado = plantilla_inactivo.replace("{{nombre_cliente}}", clienta['nombre'])
+            clienta_dict['mensaje_wa'] = urllib.parse.quote_plus(mensaje_personalizado)
             clientes_inactivos.append(clienta_dict)
 
-    # Alerta de Fidelización (CON TELÉFONO CORREGIDO)
-    conteo_turnos_por_cliente = {row['cliente_id']: row['total_turnos'] for row in cursor.execute("SELECT cliente_id, COUNT(*) as total_turnos FROM turnos WHERE usuario_id = ? GROUP BY cliente_id", (usuario_id_actual,)).fetchall()}
+    # Alerta de Fidelización
     clientes_a_premiar = []
+    plantilla_fidelizacion = plantillas_db.get('fidelizacion', "¡Hola, {{nombre_cliente}}! ¡Te ganaste un premio!")
+    conteo_turnos_por_cliente = {row['cliente_id']: row['total_turnos'] for row in cursor.execute("SELECT cliente_id, COUNT(*) as total_turnos FROM turnos WHERE usuario_id = ? GROUP BY cliente_id", (usuario_id_actual,)).fetchall()}
     for clienta in todos_mis_clientes:
         total_turnos = conteo_turnos_por_cliente.get(clienta['id'], 0)
         premios_recibidos = clienta['premios_recibidos']
@@ -220,18 +252,21 @@ def panel_control():
             clienta_dict['total_turnos'] = total_turnos
             telefono_local = (clienta['telefono'] or '').strip()
             clienta_dict['telefono_wa'] = "549" + telefono_local if len(telefono_local) >= 10 else telefono_local
+            mensaje_personalizado = plantilla_fidelizacion.replace("{{nombre_cliente}}", clienta['nombre'])
+            mensaje_personalizado = mensaje_personalizado.replace("{{total_turnos}}", str(total_turnos))
+            clienta_dict['mensaje_wa'] = urllib.parse.quote_plus(mensaje_personalizado)
             clientes_a_premiar.append(clienta_dict)
 
-    # Alerta de Vencimiento de Suscripción
+    # Alerta de Vencimiento de Suscripción (esta no cambia)
     alerta_vencimiento = None
     if usuario and usuario['fecha_vencimiento']:
-        hoy_date = hoy.date()
         fecha_vencimiento = datetime.strptime(usuario['fecha_vencimiento'], '%Y-%m-%d').date()
-        dias_restantes = (fecha_vencimiento - hoy_date).days
+        dias_restantes = (fecha_vencimiento - hoy.date()).days
         if 0 <= dias_restantes <= 7:
             mensaje = "¡Tu suscripción vence hoy!" if dias_restantes == 0 else f"¡Atención! Tu suscripción vence en {dias_restantes} día(s)."
             alerta_vencimiento = mensaje
 
+    # Datos para el pop-up de agendar turno
     clientes_para_modal = todos_mis_clientes
     servicios_para_modal = cursor.execute("SELECT * FROM servicios WHERE usuario_id = ?", (usuario_id_actual,)).fetchall()
     
@@ -689,22 +724,64 @@ def ver_estadisticas():
     return render_template('estadisticas.html', turnos_mes=turnos_por_mes_ordenado, servicios_pop=servicios_populares)
 
 
-@app.route('/mensajes')
+@app.route('/mensajes', methods=['GET', 'POST'])
 def gestionar_mensajes():
-    if 'usuario_id' not in session:
-        return redirect('/login')
-
+    if 'usuario_id' not in session: return redirect('/login')
     usuario_id_actual = session['usuario_id']
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    
-    # Obtenemos todas las plantillas guardadas por el usuario
-    cursor.execute("SELECT id, tipo_mensaje, texto_mensaje FROM plantillas_mensajes WHERE usuario_id = ? ORDER BY tipo_mensaje", (usuario_id_actual,))
-    plantillas = cursor.fetchall()
-    conn.close()
 
-    return render_template('mensajes.html', plantillas=plantillas)
+    if request.method == 'POST':
+        # Guardamos los 4 mensajes fijos
+        for tipo in MENSAJES_FIJOS:
+            nuevo_texto = request.form.get(f'fijo_{tipo}')
+            if nuevo_texto is not None:
+                cursor.execute(
+                    "REPLACE INTO plantillas_mensajes (usuario_id, tipo_mensaje, texto_mensaje) VALUES (?, ?, ?)",
+                    (usuario_id_actual, tipo, nuevo_texto)
+                )
+        
+        # Guardamos una nueva plantilla personalizada
+        nombre_plantilla = request.form.get('nombre_plantilla')
+        texto_plantilla = request.form.get('texto_plantilla')
+        if nombre_plantilla and texto_plantilla:
+            try:
+                cursor.execute(
+                    "INSERT INTO plantillas_mensajes (usuario_id, tipo_mensaje, texto_mensaje) VALUES (?, ?, ?)",
+                    (usuario_id_actual, nombre_plantilla, texto_plantilla)
+                )
+            except sqlite3.IntegrityError:
+                flash("Error: Ya existe una plantilla personalizada con ese nombre.", "error")
+        
+        conn.commit()
+        conn.close()
+        flash("¡Mensajes guardados con éxito!", "success")
+        return redirect('/mensajes')
+
+    # --- Lógica GET (mostrar todo) ---
+    cursor.execute("SELECT id, tipo_mensaje, texto_mensaje FROM plantillas_mensajes WHERE usuario_id = ?", (usuario_id_actual,))
+    plantillas_db = cursor.fetchall()
+    conn.close()
+    
+    mensajes_fijos_para_template = {}
+    plantillas_personalizadas = []
+
+    # Separamos las plantillas fijas de las personalizadas
+    for p in plantillas_db:
+        if p['tipo_mensaje'] in MENSAJES_FIJOS:
+            mensajes_fijos_para_template[p['tipo_mensaje']] = p['texto_mensaje']
+        else:
+            plantillas_personalizadas.append(p)
+    
+    # Rellenamos los mensajes fijos con los textos por defecto si el usuario aún no los guardó
+    for tipo, texto_default in MENSAJES_FIJOS.items():
+        if tipo not in mensajes_fijos_para_template:
+            mensajes_fijos_para_template[tipo] = texto_default
+
+    return render_template('mensajes.html', 
+                           mensajes_fijos=mensajes_fijos_para_template, 
+                           plantillas_personalizadas=plantillas_personalizadas)
 
 @app.route('/mensajes/crear', methods=['POST'])
 def crear_plantilla():
@@ -818,5 +895,109 @@ def limpiar_campana():
     # Le indicamos al HTML que también limpie su memoria
     flash("limpiar_storage", "info") 
     return redirect('/campanas')
+
+@app.route('/publico/<string:url_salon>')
+@app.route('/publico/<string:url_salon>/<int:ano>/<int:mes>')
+def calendario_publico(url_salon, ano=None, mes=None):
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id, nombre_salon, nombre_publico FROM usuarios WHERE url_salon = ?", (url_salon,))
+    usuario = cursor.fetchone()
+
+    if not usuario:
+        conn.close(); return "Página no encontrada", 404
+
+    usuario_id = usuario['id']
+    titulo_pagina = usuario['nombre_publico'] if usuario['nombre_publico'] else usuario['nombre_salon']
+
+    hoy = datetime.now()
+    if ano is None or mes is None: ano, mes = hoy.year, hoy.month
+    
+    cal = calendar.Calendar()
+    dias_del_mes = cal.monthdayscalendar(ano, mes)
+    nombres_meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+    nombre_mes_actual = nombres_meses[mes - 1]
+
+    # --- LÓGICA EXPERTA DE DISPONIBILIDAD ---
+    cursor.execute("SELECT dia_semana, hora_inicio, hora_fin FROM horarios WHERE usuario_id = ? AND trabaja = 1", (usuario_id,))
+    horarios_trabajo = {h['dia_semana']: h for h in cursor.fetchall()}
+
+    mes_actual_str = f"{ano}-{mes:02d}"
+    cursor.execute("""
+        SELECT t.fecha, t.hora, s.duracion 
+        FROM turnos t JOIN servicios s ON t.servicio_id = s.id 
+        WHERE t.usuario_id = ? AND strftime('%Y-%m', t.fecha) = ? ORDER BY t.hora
+    """, (usuario_id, mes_actual_str))
+    turnos_del_mes = cursor.fetchall()
+    
+    info_dias = {}
+    for dia_num in range(1, 32):
+        try:
+            fecha = datetime(ano, mes, dia_num)
+            dia_semana = fecha.weekday()
+            
+            if dia_semana in horarios_trabajo:
+                horario_dia = horarios_trabajo[dia_semana]
+                if horario_dia['hora_inicio'] and horario_dia['hora_fin']:
+                    h_inicio_jornada = datetime.strptime(horario_dia['hora_inicio'], '%H:%M')
+                    h_fin_jornada = datetime.strptime(horario_dia['hora_fin'], '%H:%M')
+                    total_minutos_trabajo = (h_fin_jornada - h_inicio_jornada).total_seconds() / 60
+                    
+                    minutos_ocupados = 0
+                    horarios_ocupados_texto = []
+                    turnos_del_dia = [t for t in turnos_del_mes if t['fecha'] == fecha.strftime('%Y-%m-%d')]
+
+                    for turno in turnos_del_dia:
+                        minutos_ocupados += turno['duracion']
+                        inicio_turno_dt = datetime.strptime(turno['hora'], '%H:%M')
+                        fin_turno_dt = inicio_turno_dt + timedelta(minutes=turno['duracion'])
+                        horarios_ocupados_texto.append(f"{inicio_turno_dt.strftime('%H:%M')} - {fin_turno_dt.strftime('%H:%M')}")
+
+                    # CÁLCULO DE BLOQUES DISPONIBLES
+                    horarios_disponibles_texto = []
+                    cursor_tiempo = h_inicio_jornada
+                    
+                    for turno in turnos_del_dia:
+                        inicio_turno_dt = datetime.strptime(turno['hora'], '%H:%M')
+                        if cursor_tiempo < inicio_turno_dt:
+                            horarios_disponibles_texto.append(f"{cursor_tiempo.strftime('%H:%M')} - {inicio_turno_dt.strftime('%H:%M')}")
+                        
+                        fin_turno_dt = inicio_turno_dt + timedelta(minutes=turno['duracion'])
+                        cursor_tiempo = max(cursor_tiempo, fin_turno_dt)
+                    
+                    if cursor_tiempo < h_fin_jornada:
+                        horarios_disponibles_texto.append(f"{cursor_tiempo.strftime('%H:%M')} - {h_fin_jornada.strftime('%H:%M')}")
+
+                    if total_minutos_trabajo > 0:
+                        porcentaje_ocupado = (minutos_ocupados / total_minutos_trabajo) * 100
+                        estado = "disponible"
+                        if not horarios_disponibles_texto: estado = "sin-disponibilidad"
+                        elif porcentaje_ocupado >= 40: estado = "poca-disponibilidad"
+                        
+                        info_dias[dia_num] = {
+                            "estado": estado,
+                            "horarios_ocupados": horarios_ocupados_texto,
+                            "horarios_disponibles": horarios_disponibles_texto
+                        }
+        except (ValueError, TypeError):
+            continue
+
+    conn.close()
+
+    fecha_actual_dt = datetime(ano, mes, 1)
+    mes_anterior_dt = fecha_actual_dt - timedelta(days=1)
+    mes_siguiente_dt = (fecha_actual_dt + timedelta(days=31)).replace(day=1)
+
+    return render_template('calendario_publico.html', 
+                           nombre_salon=titulo_pagina,
+                           dias_del_mes=dias_del_mes,
+                           nombre_mes=nombre_mes_actual,
+                           ano=ano, mes=mes,
+                           info_dias=info_dias,
+                           url_salon=url_salon,
+                           mes_anterior=mes_anterior_dt,
+                           mes_siguiente=mes_siguiente_dt)
 if __name__ == '__main__':
     app.run(debug=True)
