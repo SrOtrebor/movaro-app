@@ -6,20 +6,22 @@
     <a href="/clientes">← Volver al listado de clientes</a>
     <hr>
 
-    <div class="layout-container">
-        <div class="layout-col-lateral">
+    <div class="detalle-layout">
+
+        <div class="detalle-datos">
             <div class="card">
-                <div class="detalle-cliente-header">
+                <div class="avatar-container">
                     {% if clienta.avatar_path %}
-                        <img src="{{ url_for('static', filename='uploads/' + clienta.avatar_path) }}" alt="Avatar" class="avatar-img">
+                        <img src="{{ url_for('static', filename='uploads/' + clienta.avatar_path) }}" alt="Avatar">
                     {% else %}
-                        <img src="{{ url_for('static', filename='placeholder.png') }}" alt="Avatar por defecto" class="avatar-img">
+                        <img src="{{ url_for('static', filename='placeholder.png') }}" alt="Avatar por defecto">
                     {% endif %}
                 </div>
+
                 <h2>{{ clienta.nombre }} {{ clienta.apellido }}</h2>
                 <p><strong>Teléfono:</strong> {{ clienta.telefono or 'No especificado' }}</p>
                 <p><strong>Cumpleaños:</strong> {{ clienta.cumpleanos or 'No especificado' }}</p>
-
+                
                 <hr>
 
                 <form action="/subir_avatar" method="post" enctype="multipart/form-data">
@@ -33,43 +35,79 @@
             </div>
         </div>
 
-        <div class="layout-col-principal">
-            <h2>Historial de Turnos</h2>
-            {% if turnos %}
-                {% for turno in turnos %}
-                    <div class="card turno-card">
-                        <h4>Turno del {{ turno.fecha }} a las {{ turno.hora }}</h4>
-                        <p><strong>Servicio:</strong> {{ turno.servicio_nombre }}</p>
-                        
-                        <div class="turno-media-container">
-                            {% if turno.foto_path %}
-                                <div class="turno-foto-container">
-                                    <p><strong>Foto del trabajo:</strong></p>
-                                    <img src="{{ url_for('static', filename='uploads/' + turno.foto_path) }}" alt="Foto del trabajo" class="turno-foto">
-                                </div>
-                            {% endif %}
+        <div class="detalle-historial">
+            <div class="card">
+                <h2>Historial de Turnos</h2>
+                {% if turnos %}
+                    {% for turno in turnos %}
+                        <div class="card turno-card">
+                            <h4>Turno del {{ turno.fecha }} a las {{ turno.hora }}</h4>
+                            <p><strong>Servicio:</strong> {{ turno.servicio_nombre }}</p>
                             
-                            <div class="turno-form-container">
-                                <form action="/subir_foto" method="post" enctype="multipart/form-data">
-                                    <div class="form-group">
-                                        <label for="foto-{{ turno.id }}">
-                                            {% if turno.foto_path %}Cambiar foto{% else %}Subir foto{% endif %} del trabajo:
-                                        </label>
-                                        <input type="hidden" name="turno_id" value="{{ turno.id }}">
-                                        <input type="hidden" name="cliente_id" value="{{ clienta.id }}">
-                                        <input type="file" id="foto-{{ turno.id }}" name="foto" accept="image/*" capture="environment" required>
+                            <div class="turno-media-container">
+                                {% if turno.foto_path %}
+                                    <div class="turno-foto-container">
+                                        <img src="{{ url_for('static', filename='uploads/' + turno.foto_path) }}" alt="Foto del trabajo" class="turno-foto">
                                     </div>
-                                    <button type="submit">Guardar</button>
-                                </form>
+                                {% endif %}
+                                
+                                <div class="turno-form-container">
+                                    <form action="/subir_foto" method="post" enctype="multipart/form-data">
+                                        <div class="form-group">
+                                            <label for="foto-{{ turno.id }}">
+                                                {% if turno.foto_path %}Cambiar foto{% else %}Subir foto{% endif %} del trabajo:
+                                            </label>
+                                            <input type="hidden" name="turno_id" value="{{ turno.id }}">
+                                            <input type="hidden" name="cliente_id" value="{{ clienta.id }}">
+                                            <input type="file" id="foto-{{ turno.id }}" name="foto" accept="image/*" capture="environment" required>
+                                        </div>
+                                        <button type="submit">Guardar</button>
+                                    </form>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                {% endfor %}
-            {% else %}
-                <div class="card">
+                    {% endfor %}
+                {% else %}
                     <p>Este cliente aún no tiene turnos registrados.</p>
-                </div>
-            {% endif %}
+                {% endif %}
+            </div>
         </div>
     </div>
+
+    <div id="foto-modal" class="foto-modal">
+        <span id="foto-modal-cerrar" class="foto-modal-cerrar">&times;</span>
+        <img id="foto-modal-img" class="foto-modal-img" src="" alt="Vista ampliada del trabajo">
+    </div>
+
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('foto-modal');
+    if (modal) {
+        const modalImg = document.getElementById('foto-modal-img');
+        const cerrarBtn = document.getElementById('foto-modal-cerrar');
+
+        document.querySelectorAll('.turno-foto-container img').forEach(thumb => {
+            thumb.addEventListener('click', function() {
+                modal.style.display = 'flex';
+                modalImg.src = this.src;
+            });
+        });
+
+        const cerrarModal = () => {
+            modal.style.display = 'none';
+        };
+
+        cerrarBtn.addEventListener('click', cerrarModal);
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                cerrarModal();
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

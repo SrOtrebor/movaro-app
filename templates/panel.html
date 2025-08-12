@@ -23,7 +23,7 @@
                         {% for clienta in cumpleaneras %}
                             <li class="item-lista-accion">
                                 <span><strong>{{ clienta.nombre }} {{ clienta.apellido }}</strong></span>
-                                <a href="https://wa.me/{{ clienta.telefono_wa }}?text={{ clienta.mensaje_wa }}" target="_blank" class="boton-accion">Enviar Saludo</a>
+                                <a href="https://wa.me/{{ clienta.telefono_wa }}?text={{ clienta.mensaje_wa }}" target="_blank" class="boton-accion accion-alerta">Enviar Saludo</a>
                             </li>
                         {% endfor %}
                     </ul>
@@ -37,7 +37,7 @@
                         {% for turno in turnos_manana %}
                             <li class="item-lista-accion">
                                 <span><strong>{{ turno.cliente_nombre }}</strong> ({{ turno.servicio_nombre }})</span>
-                                <a href="https://wa.me/{{ turno.cliente_telefono_wa }}?text={{ turno.mensaje_wa }}" target="_blank" class="boton-accion">Enviar Recordatorio</a>
+                                <a href="https://wa.me/{{ turno.cliente_telefono_wa }}?text={{ turno.mensaje_wa }}" target="_blank" class="boton-accion accion-alerta">Enviar Recordatorio</a>
                             </li>
                         {% endfor %}
                     </ul>
@@ -52,7 +52,7 @@
                             <li class="item-lista-accion">
                                 <span><strong>{{ clienta.nombre }} {{ clienta.apellido }}</strong> ({{ clienta.total_turnos }} turnos).</span>
                                 <div class="grupo-botones-accion">
-                                    <a href="https://wa.me/{{ clienta.telefono_wa }}?text={{ clienta.mensaje_wa }}" target="_blank" class="boton-accion">Avisar</a>
+                                    <a href="https://wa.me/{{ clienta.telefono_wa }}?text={{ clienta.mensaje_wa }}" target="_blank" class="boton-accion accion-alerta">Avisar</a>
                                     <form action="/premiar_cliente" method="post">
                                         <input type="hidden" name="cliente_id" value="{{ clienta.id }}">
                                         <button type="submit" class="boton-accion">Premiado</button>
@@ -71,7 +71,7 @@
                         {% for clienta in clientes_inactivos %}
                             <li class="item-lista-accion">
                                 <span><strong>{{ clienta.nombre }} {{ clienta.apellido }}</strong></span>
-                                <a href="https://wa.me/{{ clienta.telefono_wa }}?text={{ clienta.mensaje_wa }}" target="_blank" class="boton-accion">Contactar</a>
+                                <a href="https://wa.me/{{ clienta.telefono_wa }}?text={{ clienta.mensaje_wa }}" target="_blank" class="boton-accion accion-alerta">Contactar</a>
                             </li>
                         {% endfor %}
                     </ul>
@@ -155,79 +155,96 @@
         </form>
     </div>
 </div>
+
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // --- 1. DEFINIMOS LOS ELEMENTOS DEL POP-UP ---
-    const modal = document.getElementById('modal-turno');
-    if (!modal) return;
-    
-    const form = modal.querySelector('form');
-    const campoFecha = modal.querySelector('#modal-fecha');
-    const errorContainer = modal.querySelector('#error-container-modal');
-    const spanCerrar = modal.querySelector('.modal-cerrar');
+    // Script del pop-up del panel
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('modal-turno');
+        if (!modal) return;
+        
+        const form = modal.querySelector('form');
+        const campoFecha = modal.querySelector('#modal-fecha');
+        const errorContainer = modal.querySelector('#error-container-modal');
+        const spanCerrar = modal.querySelector('.modal-cerrar');
 
-    // --- FUNCIÓN PARA ABRIR EL POP-UP (LIMPIANDO EL FORMULARIO) ---
-    const abrirModal = (fecha) => {
-        if (!fecha) return;
-        form.reset(); // Limpia todos los campos del formulario.
-        errorContainer.innerHTML = ''; // Limpia cualquier mensaje de error anterior.
-        campoFecha.value = fecha; // Establece la fecha correcta.
-        modal.classList.remove('modal-oculto');
-        modal.classList.add('modal-visible');
-    };
-
-    // --- 2. LÓGICA PARA ABRIR EL POP-UP (SIMPLE) ---
-    // Busca las celdas solo en el mini-calendario
-    document.querySelectorAll('.mini-calendario .celda-dia').forEach(celda => {
-        celda.addEventListener('click', function() {
-            const fecha = this.dataset.fecha;
-            if (fecha) {
-                abrirModal(fecha);
-            }
-        });
-    });
-
-    // --- 3. LÓGICA PARA ENVIAR EL FORMULARIO SIN RECARGAR (AJAX) ---
-    form.addEventListener('submit', function(event) {
-        event.preventDefault();
-        errorContainer.innerHTML = '';
-        const formData = new FormData(form);
-
-        fetch('/agregar_turno', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                modal.classList.add('modal-oculto');
-                window.location.reload(); 
-            } else {
-                errorContainer.innerHTML = `<div class="alerta flash-error">${data.message}</div>`;
-            }
-        })
-        .catch(error => {
-            errorContainer.innerHTML = `<div class="alerta flash-error">Error de conexión. Intentalo de nuevo.</div>`;
-        });
-    });
-
-    // --- 4. CÓDIGO PARA CERRAR EL POP-UP (VERSIÓN ROBUSTA) ---
-    const cerrarModal = () => {
-        modal.classList.remove('modal-visible');
-        modal.classList.add('modal-oculto');
-        if (errorContainer) {
+        const abrirModal = (fecha) => {
+            if (!fecha) return;
+            form.reset();
             errorContainer.innerHTML = '';
-        }
-    };
+            campoFecha.value = fecha;
+            modal.classList.remove('modal-oculto');
+            modal.classList.add('modal-visible');
+        };
 
-    if (spanCerrar) {
-        spanCerrar.addEventListener('click', cerrarModal);
-    }
-    modal.addEventListener('click', (event) => {
-        if (event.target === modal) {
-            cerrarModal();
+        document.querySelectorAll('.mini-calendario .celda-dia').forEach(celda => {
+            celda.addEventListener('click', function() {
+                const fecha = this.dataset.fecha;
+                if (fecha) {
+                    abrirModal(fecha);
+                }
+            });
+        });
+
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            errorContainer.innerHTML = '';
+            const formData = new FormData(form);
+            fetch('/agregar_turno', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    modal.classList.add('modal-oculto');
+                    window.location.reload(); 
+                } else {
+                    errorContainer.innerHTML = `<div class="alerta flash-error">${data.message}</div>`;
+                }
+            })
+            .catch(error => {
+                errorContainer.innerHTML = `<div class="alerta flash-error">Error de conexión. Intentalo de nuevo.</div>`;
+            });
+        });
+
+        const cerrarModal = () => {
+            modal.classList.remove('modal-visible');
+            modal.classList.add('modal-oculto');
+            if (errorContainer) {
+                errorContainer.innerHTML = '';
+            }
+        };
+
+        if (spanCerrar) {
+            spanCerrar.addEventListener('click', cerrarModal);
         }
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                cerrarModal();
+            }
+        });
     });
-});
+
+    // === SCRIPT MEJORADO PARA MARCAR ALERTAS COMO COMPLETADAS ===
+    document.querySelectorAll('.accion-alerta').forEach(boton => {
+        boton.addEventListener('click', function(event) {
+            // 1. Prevenimos que el navegador se vaya a WhatsApp inmediatamente
+            event.preventDefault();
+
+            // 2. Buscamos el elemento <li> que contiene al botón
+            const itemAlerta = event.target.closest('li');
+            
+            if (itemAlerta) {
+                // 3. Le agregamos la clase para que se ponga gris y se desactive
+                itemAlerta.classList.add('alerta-item-completado');
+            }
+
+            // 4. Ahora sí, abrimos la pestaña de WhatsApp manualmente
+            const url = event.target.href; // Obtenemos la URL del botón
+            if (url) {
+                window.open(url, '_blank');
+            }
+        });
+    });
 </script>
 {% endblock %}

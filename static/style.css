@@ -208,15 +208,130 @@ img { max-width: 100%; height: auto; }
     margin-bottom: 8px;
     font-weight: 500;
 }
-
 /* ======================================= */
-/* CORRECCIÓN PARA EL MINI-CALENDARIO DEL PANEL */
+/* ESTILO REFORZADO PARA ALERTAS COMPLETADAS */
 /* ======================================= */
 
-/* Pinta de color los días con turnos en el mini-calendario */
-.mini-calendario .dia-ocupado {
-    background-color: #fcebe8; /* Un color rojo suave */
-    font-weight: bold;
-    border-radius: 5px; /* Redondeamos un poco la celda */
+/* Usamos un selector más específico para darle más prioridad */
+.alerta li.alerta-item-completado {
+    opacity: 0.5;
+    background-color: #f8f9fa !important; /* Usamos !important para asegurar que gane */
+    pointer-events: none;
 }
 
+/* También nos aseguramos de que el botón se ponga gris */
+.alerta li.alerta-item-completado .boton-accion {
+    background-color: #6c757d !important;
+}
+
+/* ======================================= */
+/* ESTILOS PARA LA PÁGINA DETALLE DE CLIENTE */
+/* ======================================= */
+
+/* Contenedor principal que crea el layout de 2 columnas */
+.detalle-layout {
+    display: flex;
+    gap: 30px; /* Espacio entre las columnas */
+}
+
+/* Columna de datos del cliente (30%) */
+.detalle-datos {
+    flex-basis: 30%;
+    flex-shrink: 0;
+}
+
+/* Columna del historial de turnos (70%) */
+.detalle-historial {
+    flex-basis: 70%;
+}
+
+/* Contenedor cuadrado para la foto del avatar */
+.avatar-container {
+    width: 120px;
+    height: 120px;
+    border-radius: 12px; /* Puntas redondeadas */
+    overflow: hidden; /* Recorta la imagen para que encaje perfectamente */
+    margin-bottom: 20px;
+    border: 1px solid var(--color-borde-suave);
+}
+
+.avatar-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Asegura que la imagen cubra el espacio sin deformarse */
+}
+
+/* Contenedor para la galería de fotos de trabajos */
+.historial-fotos-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px; /* Espacio entre las fotos */
+    margin-top: 15px;
+}
+
+/* Contenedor para cada foto pequeña del trabajo */
+.turno-foto-container {
+    width: 100px;
+    height: 100px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--color-borde-suave);
+}
+
+.turno-foto-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* ======================================= */
+/* ESTILOS PARA EL POP-UP DE FOTOS (LIGHTBOX) */
+/* ======================================= */
+
+/* La regla que faltaba: le ponemos el cursor de puntero a las fotos */
+.turno-foto-container img {
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+.turno-foto-container img:hover {
+    transform: scale(1.05);
+}
+
+/* El fondo oscuro del pop-up */
+.foto-modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.85);
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* La imagen grande dentro del pop-up */
+.foto-modal-img {
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: 5px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+}
+
+/* El botón de cierre 'X' */
+.foto-modal-cerrar {
+    position: absolute;
+    top: 20px;
+    right: 35px;
+    color: #f1f1f1;
+    font-size: 40px;
+    font-weight: bold;
+    transition: color 0.3s;
+    cursor: pointer;
+}
+.foto-modal-cerrar:hover {
+    color: #bbb;
+}

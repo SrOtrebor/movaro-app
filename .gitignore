@@ -1,0 +1,17 @@
+# Base de Datos
+agenda.db
+
+# Archivos de subida de usuarios
+static/uploads/
+
+# Archivos temporales de Python
+__pycache__/
+*.pyc
+
+# Archivos de datos y backups
+*.json
+*_viejo.py
+*_viejo.css
+
+# Archivos de entorno
+.env
