@@ -3,6 +3,7 @@ import calendar
 import os
 import time
 import urllib.parse
+from PIL import Image
 from flask import Flask, render_template, request, redirect, flash, session, jsonify, get_flashed_messages
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
@@ -435,11 +436,26 @@ def subir_foto():
     turno_id = request.form['turno_id']
     cliente_id = request.form['cliente_id']
     foto = request.files.get('foto')
+
     if foto and foto.filename != '':
         nombre_archivo = secure_filename(foto.filename)
         nombre_unico = f"{turno_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{nombre_archivo}"
         ruta_guardado = os.path.join(app.config['UPLOAD_FOLDER'], nombre_unico)
-        foto.save(ruta_guardado)
+
+        # --- MAGIA DE OPTIMIZACIÓN AQUÍ ---
+        try:
+            imagen = Image.open(foto)
+            # Opcional: Si querés que ninguna foto de trabajo supere los 1080px de ancho
+            # if imagen.width > 1080:
+            #     imagen.thumbnail((1080, 1080))
+
+            # Guardamos la imagen optimizada (calidad 85 es un excelente balance)
+            imagen.save(ruta_guardado, optimize=True, quality=85)
+        except Exception as e:
+            flash(f"Hubo un error al procesar la imagen: {e}", "error")
+            return redirect(f'/cliente/{cliente_id}')
+        # --- FIN DE LA MAGIA ---
+
         conn = sqlite3.connect(DATABASE)
         cursor = conn.cursor()
         cursor.execute("UPDATE turnos SET foto_path = ? WHERE id = ? AND usuario_id = ?", (nombre_unico, turno_id, session['usuario_id']))
@@ -448,6 +464,7 @@ def subir_foto():
         flash("¡Foto subida con éxito!")
     else:
         flash("No se seleccionó ningún archivo.")
+
     return redirect(f'/cliente/{cliente_id}')
 
 @app.route('/subir_avatar', methods=['POST'])
@@ -455,11 +472,25 @@ def subir_avatar():
     if 'usuario_id' not in session: return redirect('/login')
     cliente_id = request.form['cliente_id']
     avatar = request.files.get('avatar')
+
     if avatar and avatar.filename != '':
         nombre_archivo = secure_filename(avatar.filename)
         nombre_unico = f"avatar_{cliente_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{nombre_archivo}"
         ruta_guardado = os.path.join(app.config['UPLOAD_FOLDER'], nombre_unico)
-        avatar.save(ruta_guardado)
+
+        # --- MAGIA DE OPTIMIZACIÓN Y REDUCCIÓN DE TAMAÑO ---
+        try:
+            imagen = Image.open(avatar)
+            # Reducimos la imagen a un tamaño máximo de 400x400 píxeles, manteniendo la proporción
+            imagen.thumbnail((400, 400))
+
+            # Guardamos la imagen optimizada
+            imagen.save(ruta_guardado, optimize=True, quality=85)
+        except Exception as e:
+            flash(f"Hubo un error al procesar la imagen: {e}", "error")
+            return redirect(f'/cliente/{cliente_id}')
+        # --- FIN DE LA MAGIA ---
+
         conn = sqlite3.connect(DATABASE)
         cursor = conn.cursor()
         cursor.execute("UPDATE clientes SET avatar_path = ? WHERE id = ? AND usuario_id = ?", (nombre_unico, cliente_id, session['usuario_id']))
@@ -468,8 +499,8 @@ def subir_avatar():
         flash("¡Foto de perfil actualizada!")
     else:
         flash("No se seleccionó ningún archivo.")
-    return redirect(f'/cliente/{cliente_id}')
 
+    return redirect(f'/cliente/{cliente_id}')
 @app.route('/servicios', methods=['GET', 'POST'])
 def gestionar_servicios():
     if 'usuario_id' not in session: return redirect('/login')
