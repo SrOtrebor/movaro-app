@@ -22,7 +22,7 @@ app = Flask(__name__)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax' # <-- AGREGÁ ESTA LÍNEA
 app.secret_key = 'mi_clave_secreta_super_dificil_v2' # Esta línea ya la tenés
 app.secret_key = 'mi_clave_secreta_super_dificil_v2'
-DATABASE = 'agenda.db'
+DATABASE = '/data/agenda.db'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 TOLERANCIA_MINUTOS = 10 
 DIAS_INACTIVIDAD = 30
@@ -464,7 +464,7 @@ def subir_foto():
 
     if foto and foto.filename != '':
         nombre_archivo = secure_filename(foto.filename)
-        nombre_unico = f"{turno_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{nombre_archivo}"
+        nombre_unico = f"{turno_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{nombre_unico}"
         ruta_guardado = os.path.join(app.config['UPLOAD_FOLDER'], nombre_unico)
 
         # --- MAGIA DE OPTIMIZACIÓN AQUÍ ---

@@ -1,21 +1,22 @@
 import sqlite3
 import os
 
-DATABASE = 'agenda.db'
-db_path = os.path.abspath(DATABASE)
-print(f"--- Creando/Reseteando Base de Datos en: {db_path} ---")
+DATABASE = '/data/agenda.db'
+db_path = DATABASE # Ya es una ruta absoluta
+print(f"--- Creando/Actualizando Base de Datos en: {db_path} ---")
 
-if os.path.exists(db_path):
-    os.remove(db_path)
-    print("OK: Base de datos anterior borrada.")
+# Eliminamos la parte que borraba la base de datos
+# if os.path.exists(db_path):
+#     os.remove(db_path)
+#     print("OK: Base de datos anterior borrada.")
 
 try:
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
 
-    print("OK: Creando tabla 'clientes'...")
+    print("OK: Creando/Verificando tabla 'clientes'...")
     cursor.execute('''
-        CREATE TABLE clientes (
+        CREATE TABLE IF NOT EXISTS clientes (
             id INTEGER PRIMARY KEY AUTOINCREMENT, usuario_id INTEGER NOT NULL,
             nombre TEXT NOT NULL, apellido TEXT NOT NULL,
             telefono TEXT, cumpleanos TEXT, avatar_path TEXT,
@@ -23,9 +24,9 @@ try:
             FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
         )''')
 
-    print("OK: Creando tabla 'servicios'...")
+    print("OK: Creando/Verificando tabla 'servicios'...")
     cursor.execute('''
-        CREATE TABLE servicios (
+        CREATE TABLE IF NOT EXISTS servicios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             usuario_id INTEGER NOT NULL,
             nombre TEXT NOT NULL,
@@ -33,9 +34,9 @@ try:
             FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
         )''')
 
-    print("OK: Creando tabla 'turnos'...")
+    print("OK: Creando/Verificando tabla 'turnos'...")
     cursor.execute('''
-        CREATE TABLE turnos (
+        CREATE TABLE IF NOT EXISTS turnos (
             id INTEGER PRIMARY KEY AUTOINCREMENT, usuario_id INTEGER NOT NULL,
             cliente_id INTEGER NOT NULL, servicio_id INTEGER NOT NULL,
             servicio_nombre TEXT NOT NULL, fecha TEXT NOT NULL,
@@ -45,9 +46,9 @@ try:
             FOREIGN KEY (servicio_id) REFERENCES servicios (id)
         )''')
         
-    print("OK: Creando tabla 'horarios'...")
+    print("OK: Creando/Verificando tabla 'horarios'...")
     cursor.execute('''
-        CREATE TABLE horarios (
+        CREATE TABLE IF NOT EXISTS horarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             usuario_id INTEGER NOT NULL,
             dia_semana INTEGER NOT NULL, -- 0=Lunes, 1=Martes, etc.
@@ -59,11 +60,9 @@ try:
         )
     ''')
 
-# ... (aquí termina el bloque que crea la tabla 'horarios')
-
-    print("OK: Creando tabla 'plantillas_mensajes'...")
+    print("OK: Creando/Verificando tabla 'plantillas_mensajes'...")
     cursor.execute('''
-        CREATE TABLE plantillas_mensajes (
+        CREATE TABLE IF NOT EXISTS plantillas_mensajes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             usuario_id INTEGER NOT NULL,
             tipo_mensaje TEXT NOT NULL, -- ej: 'recordatorio', 'cumpleanos'
@@ -72,23 +71,21 @@ try:
             FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
         )
     ''')
-    print("OK: Creando tabla 'usuarios'...")
+    print("OK: Creando/Verificando tabla 'usuarios'...")
     cursor.execute('''
-    CREATE TABLE usuarios (
+    CREATE TABLE IF NOT EXISTS usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL, nombre_salon TEXT NOT NULL,
         estado TEXT NOT NULL DEFAULT 'pendiente', fecha_vencimiento DATE,
         meta_fidelizacion INTEGER DEFAULT 5,
         url_salon TEXT UNIQUE,
-        nombre_publico TEXT  -- <-- AGREGÁ ESTA LÍNEA
+        nombre_publico TEXT
         )
     ''')
 
-# ... (aquí empieza la línea conn.commit())
-
     conn.commit()
     conn.close()
-    print("\n¡ÉXITO! La base de datos se creó correctamente.")
+    print("\n¡ÉXITO! La base de datos se creó/verificó correctamente.")
 
 except Exception as e:
     print(f"\n¡ERROR! Ocurrió un problema: {e}")
