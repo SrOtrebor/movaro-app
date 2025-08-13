@@ -4,8 +4,17 @@
 
 {% block content %}
     <h1>Mis Clientes</h1>
-    <p>Agregá nuevos clientes o hacé clic en uno existente para ver su historial.</p>
-    <hr>
+    <p>Agregá nuevos clientes o usá el buscador para encontrar uno existente.</p>
+    
+    <div class="card" style="margin-top: 20px; margin-bottom: 20px;">
+        <form method="get" action="{{ url_for('ver_clientes') }}" style="display: flex; gap: 10px;">
+            <input type="search" name="q" placeholder="Buscar por nombre o apellido..." value="{{ query or '' }}" class="form-control" style="flex-grow: 1;">
+            <button type="submit" class="boton-accion">Buscar</button>
+            {% if query %}
+                <a href="{{ url_for('ver_clientes') }}" class="boton-accion" style="background-color: #6c757d;">Limpiar</a>
+            {% endif %}
+        </form>
+    </div>
 
     <div class="card">
         <h2>Listado de Clientes</h2>
@@ -28,7 +37,13 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="3" style="text-align: center;">No tenés clientes registrados.</td>
+                    <td colspan="3" style="text-align: center;">
+                        {% if query %}
+                            No se encontraron clientes con el término "<strong>{{ query }}</strong>".
+                        {% else %}
+                            Aún no tenés clientes registrados.
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -42,19 +57,19 @@
         <form action="/agregar_cliente" method="post">
             <div class="form-group">
                 <label for="nombre">Nombre:</label>
-                <input type="text" id="nombre" name="nombre" required>
+                <input type="text" id="nombre" name="nombre" required class="form-control">
             </div>
             <div class="form-group">
                 <label for="apellido">Apellido:</label>
-                <input type="text" id="apellido" name="apellido" required>
+                <input type="text" id="apellido" name="apellido" required class="form-control">
             </div>
             <div class="form-group">
                 <label for="telefono">Teléfono:</label>
-                <input type="tel" id="telefono" name="telefono">
+                <input type="tel" id="telefono" name="telefono" class="form-control">
             </div>
             <div class="form-group">
                 <label for="cumpleanos">Cumpleaños:</label>
-                <input type="date" id="cumpleanos" name="cumpleanos">
+                <input type="date" id="cumpleanos" name="cumpleanos" class="form-control">
             </div>
             <button type="submit">Guardar Cliente</button>
         </form>

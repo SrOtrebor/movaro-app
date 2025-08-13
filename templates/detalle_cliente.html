@@ -6,16 +6,18 @@
     <a href="/clientes">← Volver al listado de clientes</a>
     <hr>
 
-    <div class="layout-container">
-        <div class="layout-col-lateral">
+    <div class="detalle-cliente-container">
+        <!-- Columna de Detalles del Cliente (30%) -->
+        <div class="col-detalle-cliente">
             <div class="card">
-                <div class="detalle-cliente-header">
+                <div class="avatar-container">
                     {% if clienta.avatar_path %}
                         <img src="{{ url_for('static', filename='uploads/' + clienta.avatar_path) }}" alt="Avatar" class="avatar-img">
                     {% else %}
-                        <img src="{{ url_for('static', filename='placeholder.png') }}" alt="Avatar por defecto" class="avatar-img">
+                        <div class="avatar-placeholder">{{ clienta.nombre[0] if clienta.nombre }}</div>
                     {% endif %}
                 </div>
+                
                 <h2>{{ clienta.nombre }} {{ clienta.apellido }}</h2>
                 <p><strong>Teléfono:</strong> {{ clienta.telefono or 'No especificado' }}</p>
                 <p><strong>Cumpleaños:</strong> {{ clienta.cumpleanos or 'No especificado' }}</p>
@@ -26,26 +28,29 @@
                     <div class="form-group">
                         <label for="avatar">Cambiar foto de perfil:</label>
                         <input type="hidden" name="cliente_id" value="{{ clienta.id }}">
-                        <input type="file" id="avatar" name="avatar" accept="image/*" capture="environment" required>
+                        <input type="file" id="avatar" name="avatar" accept="image/*" capture="environment" required class="form-control">
                     </div>
                     <button type="submit" style="width:100%;">Subir Foto</button>
                 </form>
             </div>
         </div>
 
-        <div class="layout-col-principal">
+        <!-- Columna de Historial de Turnos (70%) -->
+        <div class="col-historial-turnos">
             <h2>Historial de Turnos</h2>
             {% if turnos %}
                 {% for turno in turnos %}
                     <div class="card turno-card">
-                        <h4>Turno del {{ turno.fecha }} a las {{ turno.hora }}</h4>
-                        <p><strong>Servicio:</strong> {{ turno.servicio_nombre }}</p>
+                        <div class="turno-card-header">
+                            <h4>Turno del {{ turno.fecha }} a las {{ turno.hora }}</h4>
+                            <p><strong>Servicio:</strong> {{ turno.servicio_nombre }}</p>
+                        </div>
                         
                         <div class="turno-media-container">
                             {% if turno.foto_path %}
                                 <div class="turno-foto-container">
                                     <p><strong>Foto del trabajo:</strong></p>
-                                    <img src="{{ url_for('static', filename='uploads/' + turno.foto_path) }}" alt="Foto del trabajo" class="turno-foto">
+                                    <img src="{{ url_for('static', filename='uploads/' + turno.foto_path) }}" alt="Foto del trabajo" class="turno-foto-thumbnail">
                                 </div>
                             {% endif %}
                             
@@ -57,7 +62,7 @@
                                         </label>
                                         <input type="hidden" name="turno_id" value="{{ turno.id }}">
                                         <input type="hidden" name="cliente_id" value="{{ clienta.id }}">
-                                        <input type="file" id="foto-{{ turno.id }}" name="foto" accept="image/*" capture="environment" required>
+                                        <input type="file" id="foto-{{ turno.id }}" name="foto" accept="image/*" capture="environment" required class="form-control">
                                     </div>
                                     <button type="submit">Guardar</button>
                                 </form>
@@ -72,4 +77,46 @@
             {% endif %}
         </div>
     </div>
+
+<!-- Modal para la imagen -->
+<div id="foto-modal" class="modal-foto-viewer">
+    <span class="modal-foto-cerrar">&times;</span>
+    <img class="modal-foto-contenido" id="img-modal">
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Elementos del modal
+    const modal = document.getElementById('foto-modal');
+    const modalImg = document.getElementById('img-modal');
+    const spanCerrar = document.querySelector('.modal-foto-cerrar');
+
+    // Todas las imágenes de la galería
+    const thumbnails = document.querySelectorAll('.turno-foto-thumbnail');
+
+    thumbnails.forEach(img => {
+        img.addEventListener('click', function() {
+            modal.style.display = "flex";
+            modalImg.src = this.src;
+        });
+    });
+
+    // Función para cerrar el modal
+    const cerrarModal = () => {
+        modal.style.display = "none";
+    }
+
+    // Eventos para cerrar
+    if(spanCerrar) {
+        spanCerrar.addEventListener('click', cerrarModal);
+    }
+    modal.addEventListener('click', (event) => {
+        // Cierra si se hace clic en el fondo oscuro
+        if (event.target === modal) {
+            cerrarModal();
+        }
+    });
+});
+</script>
+
 {% endblock %}

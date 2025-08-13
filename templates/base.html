@@ -7,6 +7,16 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+    <script>
+        // Script para evitar el "parpadeo" del tema claro al cargar la página
+        (function() {
+            const theme = localStorage.getItem('theme') || 'light';
+            if (theme === 'dark') {
+                document.body.classList.add('dark-mode');
+            }
+        })();
+    </script>
+
     {% if session.usuario_id %}
     <nav class="navbar">
         <div class="brand">
@@ -14,8 +24,7 @@
                 <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo movaro" height="40">
             </a>
         </div>
-        
-        <div class="links">
+        <div class="desktop-links">
             <a href="/panel">Panel</a>
             <a href="/calendario">Agenda</a>
             <a href="/clientes">Clientes</a>
@@ -27,9 +36,26 @@
             <a href="/campanas">Campañas</a>
             <a href="/logout">Cerrar Sesión</a>
         </div>
-        
-        <button class="hamburger" aria-label="Abrir menú">☰</button>
+        <div class="nav-actions">
+            <button id="theme-toggle" class="theme-toggle-btn">🌙</button>
+            <button class="hamburger" aria-label="Abrir menú">&#9776;</button>
+        </div>
     </nav>
+
+    <!-- Panel lateral deslizable -->
+    <div id="mySidenav" class="sidenav">
+        <a href="javascript:void(0)" class="closebtn">&times;</a>
+        <a href="/panel">Panel</a>
+        <a href="/calendario">Agenda</a>
+        <a href="/clientes">Clientes</a>
+        <a href="/estadisticas">Estadísticas</a>
+        <a href="/servicios">Mis Servicios</a> 
+        <a href="/horarios">Mi Horario</a> 
+        <a href="/configuracion_publica">Calendario Publico</a>
+        <a href="/mensajes">Mis Mensajes</a>  
+        <a href="/campanas">Campañas</a>
+        <a href="/logout">Cerrar Sesión</a>
+    </div>
     {% endif %}
 
     <div class="container">
@@ -45,12 +71,50 @@
     </div>
 
     <script>
+        // --- LÓGICA DEL MENÚ LATERAL ---
         const hamburger = document.querySelector('.hamburger');
-        const navLinks = document.querySelector('.navbar .links'); // Selector más específico
+        const sidenav = document.getElementById('mySidenav');
+        const closeBtn = document.querySelector('.closebtn');
 
-        if (hamburger && navLinks) {
+        if (hamburger && sidenav && closeBtn) {
             hamburger.addEventListener('click', () => {
-                navLinks.classList.toggle('active');
+                if (sidenav.style.width === '250px') {
+                    sidenav.style.width = '0';
+                } else {
+                    sidenav.style.width = '250px';
+                }
+            });
+
+            closeBtn.addEventListener('click', () => {
+                sidenav.style.width = '0';
+            });
+
+            window.addEventListener('click', (event) => {
+                if (event.target == sidenav) {
+                    sidenav.style.width = '0';
+                }
+            });
+        }
+
+        // --- LÓGICA DEL MODO OSCURO ---
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            // Actualizar el ícono al cargar la página
+            if (document.body.classList.contains('dark-mode')) {
+                themeToggle.textContent = '☀️';
+            }
+
+            themeToggle.addEventListener('click', () => {
+                document.body.classList.toggle('dark-mode');
+                
+                let theme = 'light';
+                let icon = '🌙';
+                if (document.body.classList.contains('dark-mode')) {
+                    theme = 'dark';
+                    icon = '☀️';
+                }
+                localStorage.setItem('theme', theme);
+                themeToggle.textContent = icon;
             });
         }
     </script>

@@ -162,6 +162,7 @@ def panel_control():
     cursor = conn.cursor()
 
     if request.method == 'POST':
+        # El único POST que llega aquí es el de la meta de fidelización
         nueva_meta = request.form.get('meta_fidelizacion')
         if nueva_meta:
             cursor.execute("UPDATE usuarios SET meta_fidelizacion = ? WHERE id = ?", (nueva_meta, usuario_id_actual))
@@ -172,7 +173,7 @@ def panel_control():
 
     # --- LÓGICA GET MEJORADA ---
     
-    # 1. Buscamos las plantillas de mensajes del usuario
+    # 1. Buscamos las plantillas de mensajes del usuario para las alertas
     cursor.execute("SELECT tipo_mensaje, texto_mensaje FROM plantillas_mensajes WHERE usuario_id = ?", (usuario_id_actual,))
     plantillas_db = {row['tipo_mensaje']: row['texto_mensaje'] for row in cursor.fetchall()}
     
@@ -267,6 +268,14 @@ def panel_control():
             mensaje = "¡Tu suscripción vence hoy!" if dias_restantes == 0 else f"¡Atención! Tu suscripción vence en {dias_restantes} día(s)."
             alerta_vencimiento = mensaje
 
+    # --- NUEVO: BUSCAR PLANTILLAS DE CAMPAÑA ---
+    tipos_fijos = list(MENSAJES_FIJOS.keys())
+    placeholders = ','.join('?' for _ in tipos_fijos)
+    sql_query = f"SELECT id, tipo_mensaje FROM plantillas_mensajes WHERE usuario_id = ? AND tipo_mensaje NOT IN ({placeholders})"
+    parametros = [usuario_id_actual] + tipos_fijos
+    cursor.execute(sql_query, parametros)
+    plantillas_campana = cursor.fetchall()
+
     # Datos para el pop-up de agendar turno
     clientes_para_modal = todos_mis_clientes
     servicios_para_modal = cursor.execute("SELECT * FROM servicios WHERE usuario_id = ?", (usuario_id_actual,)).fetchall()
@@ -280,7 +289,8 @@ def panel_control():
                            turnos_manana=turnos_manana, clientes_inactivos=clientes_inactivos,
                            clientes_a_premiar=clientes_a_premiar, alerta_vencimiento=alerta_vencimiento,
                            clientes=clientes_para_modal, servicios=servicios_para_modal,
-                           fecha_hoy=hoy)
+                           fecha_hoy=hoy,
+                           plantillas_campana=plantillas_campana)
 @app.route('/premiar_cliente', methods=['POST'])
 def premiar_cliente():
     if 'usuario_id' not in session: return redirect('/login')
@@ -394,13 +404,28 @@ def procesar_reseteo():
 def ver_clientes():
     if 'usuario_id' not in session: return redirect('/login')
     usuario_id_actual = session['usuario_id']
+    
+    # Obtenemos el término de búsqueda de la URL (?q=...)
+    query = request.args.get('q', '')
+    
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM clientes WHERE usuario_id = ? ORDER BY apellido, nombre", (usuario_id_actual,))
+
+    if query:
+        # Si hay búsqueda, modificamos la consulta
+        search_term = f"%{query}%"
+        cursor.execute("SELECT * FROM clientes WHERE usuario_id = ? AND (nombre LIKE ? OR apellido LIKE ?) ORDER BY apellido, nombre", 
+                       (usuario_id_actual, search_term, search_term))
+    else:
+        # Si no, traemos todos los clientes como antes
+        cursor.execute("SELECT * FROM clientes WHERE usuario_id = ? ORDER BY apellido, nombre", (usuario_id_actual,))
+    
     clientes_del_usuario = cursor.fetchall()
     conn.close()
-    return render_template('clientes.html', clientes=clientes_del_usuario)
+    
+    # Pasamos la "query" a la plantilla para que el buscador no se borre
+    return render_template('clientes.html', clientes=clientes_del_usuario, query=query)
 
 @app.route('/agregar_cliente', methods=['POST'])
 def agregar_cliente():

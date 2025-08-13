@@ -16,6 +16,7 @@ body {
     background-color: var(--color-fondo);
     color: var(--color-texto);
     line-height: 1.6;
+    transition: background-color 0.3s, color 0.3s;
 }
 .container {
     max-width: 95%; /* Ancho fluido para aprovechar la pantalla */
@@ -53,10 +54,69 @@ img { max-width: 100%; height: auto; }
 .navbar .brand img {
     height: 40px; /* Altura fija para el logo */
     width: auto;
+    vertical-align: middle;
 }
-.navbar .links { display: flex; align-items: center; }
-.navbar .links a { color: var(--color-fondo); margin-left: 25px; font-weight: bold; }
-.hamburger { display: none; background: none; border: none; color: var(--color-fondo); font-size: 2.5em; cursor: pointer; }
+.navbar .desktop-links { 
+    display: flex; 
+    align-items: center; 
+}
+.navbar .desktop-links a { 
+    color: var(--color-fondo); 
+    margin-left: 25px; 
+    font-weight: bold; 
+}
+.nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.hamburger { 
+    display: none; 
+    background: none; 
+    border: none; 
+    color: var(--color-fondo); 
+    font-size: 2.5em; 
+    cursor: pointer; 
+    padding: 0;
+}
+.hamburger:hover {
+    background-color: transparent;
+}
+
+/* ======================================= */
+/* PANEL LATERAL (SIDENAV)                 */
+/* ======================================= */
+.sidenav {
+    height: 100%;
+    width: 0;
+    position: fixed;
+    z-index: 1001; /* Por encima de todo */
+    top: 0;
+    right: 0;
+    background-color: var(--color-secundario);
+    overflow-x: hidden;
+    transition: 0.4s; /* Animación suave */
+    padding-top: 60px;
+}
+.sidenav a {
+    padding: 10px 15px 10px 30px;
+    text-decoration: none;
+    font-size: 1.1em;
+    color: var(--color-fondo);
+    display: block;
+    transition: 0.2s;
+}
+.sidenav a:hover {
+    background-color: var(--color-primario);
+    text-decoration: none;
+}
+.sidenav .closebtn {
+    position: absolute;
+    top: 0;
+    right: 15px;
+    font-size: 36px;
+    margin-left: 50px;
+}
 
 /* ======================================= */
 /* LAYOUT, CARDS Y FORMULARIOS             */
@@ -70,11 +130,27 @@ img { max-width: 100%; height: auto; }
     flex: 6; /* Proporción de 6 sobre 10 (60%) */
     min-width: 0;
 }
-.card { background-color: var(--color-blanco); padding: 20px 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.card { 
+    background-color: var(--color-blanco); 
+    padding: 20px 25px; 
+    border-radius: 8px; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+    transition: background-color 0.3s;
+}
 .form-section { background-color: var(--color-blanco); padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 .form-group { margin-bottom: 15px; }
 .form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
-.form-group input, .form-group select, .form-control { width: 100%; padding: 12px; border: 1px solid var(--color-borde-suave); border-radius: 5px; box-sizing: border-box; font-size: 1em; }
+.form-group input, .form-group select, .form-control { 
+    width: 100%; 
+    padding: 12px; 
+    border: 1px solid var(--color-borde-suave); 
+    border-radius: 5px; 
+    box-sizing: border-box; 
+    font-size: 1em; 
+    background-color: var(--color-fondo);
+    color: var(--color-texto);
+    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
 
 /* ======================================= */
 /* ESTILOS ESPECÍFICOS PARA EL PANEL       */
@@ -133,11 +209,8 @@ img { max-width: 100%; height: auto; }
 /* CÓDIGO RESPONSIVO                       */
 /* ======================================= */
 @media (max-width: 900px) {
-    .navbar { flex-wrap: wrap; }
-    .navbar .links { display: none; flex-direction: column; width: 100%; text-align: center; order: 3; padding: 15px 0; }
-    .navbar .links.active { display: flex; }
-    .navbar .hamburger { display: block; order: 2; }
-    .navbar .brand { order: 1; }
+    .navbar .desktop-links { display: none; } /* Oculta los links del escritorio en móvil */
+    .navbar .hamburger { display: block; } /* Muestra la hamburguesa en móvil */
 
     .layout-container { flex-direction: column; }
     .layout-col-principal, .layout-col-lateral { width: 100%; }
@@ -220,3 +293,220 @@ img { max-width: 100%; height: auto; }
     border-radius: 5px; /* Redondeamos un poco la celda */
 }
 
+.alerta-campana {
+    background-color: #eef2fa; /* Un color azul suave */
+    border-left: 5px solid #6c757d; /* Un gris neutro */
+}
+
+.alerta-campana h3 {
+    color: #333;
+}
+
+.form-campana-panel {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 15px;
+}
+
+.form-campana-panel .form-group {
+    flex-grow: 1;
+    margin-bottom: 0;
+}
+
+.form-campana-panel .boton-accion {
+    flex-shrink: 0; /* Evita que el botón se encoja */
+}
+
+/* ======================================= */
+/* PÁGINA DETALLE DE CLIENTE               */
+/* ======================================= */
+.detalle-cliente-container {
+    display: flex;
+    flex-wrap: wrap; /* Para que en móvil se ponga una columna debajo de la otra */
+    gap: 30px;
+}
+.col-detalle-cliente {
+    flex: 1 1 300px; /* Crece, se encoge, base de 300px */
+    max-width: 30%; /* Límite en escritorio */
+}
+.col-historial-turnos {
+    flex: 1 1 500px; /* Crece, se encoge, base de 500px */
+    max-width: 70%;
+}
+
+@media (max-width: 900px) {
+    .col-detalle-cliente, .col-historial-turnos {
+        max-width: 100%;
+        flex-basis: 100%;
+    }
+}
+
+.avatar-container {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin: 0 auto 20px auto; /* Centrado */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    background-color: var(--color-borde-suave);
+}
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Evita que la imagen se deforme */
+}
+.avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4em;
+    font-weight: bold;
+    color: var(--color-primario);
+    background-color: var(--color-fondo);
+}
+
+.turno-card {
+    margin-bottom: 20px;
+}
+.turno-media-container {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+.turno-foto-container {
+    flex-shrink: 0;
+}
+.turno-form-container {
+    flex-grow: 1;
+}
+.turno-foto-thumbnail {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s;
+}
+.turno-foto-thumbnail:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Estilos para el Modal de la foto */
+.modal-foto-viewer {
+    display: none; /* Oculto por defecto */
+    position: fixed;
+    z-index: 2001; /* Encima del sidenav */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.3s;
+}
+.modal-foto-contenido {
+    max-width: 90%;
+    max-height: 85%;
+    animation: zoomIn 0.3s;
+}
+.modal-foto-cerrar {
+    position: absolute;
+    top: 20px;
+    right: 35px;
+    color: #fff;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.modal-foto-cerrar:hover {
+    color: var(--color-borde-suave);
+}
+
+@keyframes fadeIn {
+    from {opacity: 0}
+    to {opacity: 1}
+}
+@keyframes zoomIn {
+    from {transform: scale(0.8)}
+    to {transform: scale(1)}
+}
+
+/* ======================================= */
+/* MODO OSCURO Y BOTÓN DE TEMA             */
+/* ======================================= */
+body.dark-mode {
+    --color-primario: #D97969; /* Tono más claro para el modo oscuro */
+    --color-texto: #EAEAEA;
+    --color-fondo: #2c3e50;
+    --color-blanco: #34495e;
+    --color-borde-suave: #4a617a;
+}
+
+.theme-toggle-btn {
+    background: none;
+    border: 1px solid var(--color-fondo);
+    color: var(--color-fondo);
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.1em;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+.theme-toggle-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Ajustes de color para componentes específicos en modo oscuro */
+body.dark-mode .mini-calendario .dia-ocupado {
+    background-color: #5D3A3A;
+}
+body.dark-mode .alerta-cumple { background-color: #5a543a; color: #f1c40f; border-color: #f1c40f; }
+body.dark-mode .alerta-turno { background-color: #2c4a63; color: #5dade2; border-color: #5dade2; }
+body.dark-mode .alerta-inactivo { background-color: #5a3a3d; color: #e74c3c; border-color: #e74c3c; }
+body.dark-mode .alerta-vencimiento { background-color: #5a543a; color: #f1c40f; border-color: #f1c40f; }
+body.dark-mode .alerta-fidelizacion { background-color: #4a3a5a; color: #af7ac5; border-color: #af7ac5; }
+body.dark-mode .alerta-campana { background-color: #3a4a5a; color: #aeb6bf; border-color: #aeb6bf; }
+
+body.dark-mode .alerta-campana h3 {
+    color: #EAEAEA;
+}
+
+/* ======================================= */
+/* ESTILOS PARA NOTIFICACIONES INTERACTIVAS */
+/* ======================================= */
+
+.item-lista-accion.desactivado {
+    opacity: 0.6;
+    pointer-events: none; /* Evita que se pueda hacer clic en los enlaces hijos */
+    transition: opacity 0.3s;
+}
+
+.item-lista-accion.desactivado * {
+    pointer-events: none; /* Desactivar todos los hijos */
+}
+
+.item-lista-accion.desactivado .boton-eliminar-notificacion {
+    pointer-events: auto; /* Reactivamos los eventos solo para el botón de eliminar */
+}
+
+body.dark-mode .item-lista-accion.desactivado {
+    background-color: rgba(0,0,0,0.2);
+}
+
+.boton-eliminar-notificacion {
+    background-color: var(--color-rojo-peligro) !important;
+    padding: 5px 10px;
+    font-size: 1em;
+    line-height: 1;
+    border-radius: 50%;
+}
