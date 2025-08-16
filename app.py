@@ -125,6 +125,8 @@ def login():
             session['usuario_id'] = usuario['id']
             session['nombre_salon'] = usuario['nombre_salon']
             session['usuario_email'] = usuario['email']
+            if usuario['email'] == ADMIN_EMAIL:
+                return redirect('/superadmin')
             return redirect('/panel')
         else:
             flash("Email o contraseña incorrectos.", "error")
