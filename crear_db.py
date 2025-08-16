@@ -1,19 +1,29 @@
 import sqlite3
 import os
 
-DATABASE = '/data/agenda.db'
-db_path = DATABASE # Ya es una ruta absoluta
+# Usamos la ruta del disco de Render
+DATABASE = '/var/data/agenda.db'
+db_path = DATABASE 
 print(f"--- Creando/Actualizando Base de Datos en: {db_path} ---")
-
-# Eliminamos la parte que borraba la base de datos
-# if os.path.exists(db_path):
-#     os.remove(db_path)
-#     print("OK: Base de datos anterior borrada.")
 
 try:
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
 
+    # --- PASO 1: LA TABLA 'usuarios' DEBE SER LA PRIMERA EN CREARSE ---
+    print("OK: Creando/Verificando tabla 'usuarios'...")
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL, nombre_salon TEXT NOT NULL,
+            estado TEXT NOT NULL DEFAULT 'pendiente', fecha_vencimiento DATE,
+            meta_fidelizacion INTEGER DEFAULT 5,
+            url_salon TEXT UNIQUE,
+            nombre_publico TEXT
+        )
+    ''')
+
+    # --- AHORA LAS DEMÁS TABLAS QUE DEPENDEN DE 'usuarios' ---
     print("OK: Creando/Verificando tabla 'clientes'...")
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS clientes (
@@ -71,21 +81,11 @@ try:
             FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
         )
     ''')
-    print("OK: Creando/Verificando tabla 'usuarios'...")
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS usuarios (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL, nombre_salon TEXT NOT NULL,
-        estado TEXT NOT NULL DEFAULT 'pendiente', fecha_vencimiento DATE,
-        meta_fidelizacion INTEGER DEFAULT 5,
-        url_salon TEXT UNIQUE,
-        nombre_publico TEXT
-        )
-    ''')
 
     conn.commit()
     conn.close()
     print("\n¡ÉXITO! La base de datos se creó/verificó correctamente.")
 
 except Exception as e:
+    # --- PASO 2: CORREGIMOS EL PARÉNTESIS EXTRA AL FINAL ---
     print(f"\n¡ERROR! Ocurrió un problema: {e}")
