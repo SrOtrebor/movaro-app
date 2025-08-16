@@ -1,21 +1,28 @@
-import os
 import sqlite3
+import os
+
+# Mensaje de seguridad para confirmar que es la versión correcta
+print("--- EJECUTANDO SCRIPT SEGURO (VERSIÓN FINAL) ---")
+print("--- ESTE SCRIPT NO BORRA LA BASE DE DATOS ---")
 
 # Configuración "inteligente" de la base de datos
 if os.environ.get('RENDER'):
-    # Estamos en producción (Render), usamos el disco persistente
+    # En producción (Render), usamos el disco persistente
     DATABASE = '/data/agenda.db'
 else:
-    # Estamos en desarrollo (local), usamos un archivo en la misma carpeta
+    # En desarrollo (local), usamos un archivo en la misma carpeta
     DATABASE = 'agenda.db'
 
 db_path = DATABASE
 print(f"--- Usando Base de Datos en: {db_path} ---")
+
 try:
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
 
-    # --- PASO 1: LA TABLA 'usuarios' DEBE SER LA PRIMERA EN CREARSE ---
+    # Usamos "CREATE TABLE IF NOT EXISTS" para cada tabla.
+    # Esto asegura que si una tabla ya existe, NO se toca.
+
     print("OK: Creando/Verificando tabla 'usuarios'...")
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS usuarios (
@@ -28,7 +35,6 @@ try:
         )
     ''')
 
-    # --- AHORA LAS DEMÁS TABLAS QUE DEPENDEN DE 'usuarios' ---
     print("OK: Creando/Verificando tabla 'clientes'...")
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS clientes (
@@ -66,10 +72,10 @@ try:
         CREATE TABLE IF NOT EXISTS horarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             usuario_id INTEGER NOT NULL,
-            dia_semana INTEGER NOT NULL, -- 0=Lunes, 1=Martes, etc.
+            dia_semana INTEGER NOT NULL,
             hora_inicio TEXT,
             hora_fin TEXT,
-            trabaja BOOLEAN NOT NULL DEFAULT 1, -- 1=Sí trabaja, 0=No trabaja
+            trabaja BOOLEAN NOT NULL DEFAULT 1,
             UNIQUE(usuario_id, dia_semana),
             FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
         )
@@ -80,7 +86,7 @@ try:
         CREATE TABLE IF NOT EXISTS plantillas_mensajes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             usuario_id INTEGER NOT NULL,
-            tipo_mensaje TEXT NOT NULL, -- ej: 'recordatorio', 'cumpleanos'
+            tipo_mensaje TEXT NOT NULL,
             texto_mensaje TEXT NOT NULL,
             UNIQUE(usuario_id, tipo_mensaje),
             FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
@@ -92,5 +98,4 @@ try:
     print("\n¡ÉXITO! La base de datos se creó/verificó correctamente.")
 
 except Exception as e:
-    # --- PASO 2: CORREGIMOS EL PARÉNTESIS EXTRA AL FINAL ---
     print(f"\n¡ERROR! Ocurrió un problema: {e}")
