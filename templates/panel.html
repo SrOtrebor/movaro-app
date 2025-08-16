@@ -148,7 +148,39 @@
 </div>
 
 <div id="modal-turno" class="modal-oculto">
-    <!-- Contenido del modal de agendar turno -->
+    <div class="modal-contenido">
+        <span class="modal-cerrar">&times;</span>
+        <h2>Agendar Turno</h2>
+        <form id="form-agregar-turno" action="/agregar_turno" method="post">
+            <div class="form-group">
+                <label for="fecha_turno_modal">Fecha:</label>
+                <input type="date" id="fecha_turno_modal" name="fecha" class="form-control" readonly>
+            </div>
+            <div class="form-group">
+                <label for="hora_turno_modal">Hora:</label>
+                <input type="time" id="hora_turno_modal" name="hora" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="cliente_modal">Cliente:</label>
+                <select id="cliente_modal" name="cliente_id" class="form-control" required>
+                    <option value="">Selecciona un cliente</option>
+                    {% for cliente in clientes %}
+                        <option value="{{ cliente.id }}">{{ cliente.nombre }} {{ cliente.apellido }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="servicio_modal">Servicio:</label>
+                <select id="servicio_modal" name="servicio_id" class="form-control" required>
+                    <option value="">Selecciona un servicio</option>
+                    {% for servicio in servicios %}
+                        <option value="{{ servicio.id }}">{{ servicio.nombre }} ({{ servicio.duracion }} min)</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Agendar</button>
+        </form>
+    </div>
 </div>
 
 <script>
@@ -211,10 +243,41 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // --- LÓGICA DEL MODAL DE TURNOS (existente) ---
+    // --- LÓGICA DEL MODAL DE TURNOS ---
     const modal = document.getElementById('modal-turno');
-    if (!modal) return;
-    // ... (el resto del script del modal sigue aquí)
+
+    // Abrir modal al hacer clic en un día del calendario
+    document.querySelectorAll('.celda-dia').forEach(celda => {
+        celda.addEventListener('click', function() {
+            const fecha = this.dataset.fecha; // Obtiene la fecha del atributo data-fecha
+            if (fecha && fecha !== 'None-None-None') { // Asegurarse de que no sea una celda vacía
+                const fechaInput = document.getElementById('fecha_turno_modal'); // Move inside
+                const closeButton = modal.querySelector('.modal-cerrar'); // Move inside
+
+                if (fechaInput) {
+                    fechaInput.value = fecha; // Rellena el campo de fecha
+                }
+                modal.classList.remove('modal-oculto');
+                modal.classList.add('modal-visible');
+
+                // Add event listeners for closing the modal here, after elements are found
+                if (closeButton) {
+                    closeButton.onclick = function() { // Use onclick to avoid multiple listeners
+                        modal.classList.remove('modal-visible');
+                        modal.classList.add('modal-oculto');
+                    };
+                }
+            }
+        });
+    });
+
+    // Cerrar modal al hacer clic fuera del contenido (this can remain outside)
+    window.addEventListener('click', function(event) {
+        if (event.target == modal) {
+            modal.classList.remove('modal-visible');
+            modal.classList.add('modal-oculto');
+        }
+    });
 });
 </script>
 {% endblock %}

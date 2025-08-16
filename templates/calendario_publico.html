@@ -89,7 +89,7 @@
                     horariosDisponibles.forEach(horario => {
                         const li = document.createElement('li');
                         li.textContent = horario;
-                        li.style.backgroundColor = '#e6f9f0';
+                        li.classList.add('horario-disponible');
                         modalListaDisponibles.appendChild(li);
                     });
                 } else {
@@ -102,7 +102,7 @@
                     horariosOcupados.forEach(horario => {
                         const li = document.createElement('li');
                         li.textContent = horario;
-                        li.style.backgroundColor = '#fef2f0';
+                        li.classList.add('horario-ocupado');
                         modalListaOcupados.appendChild(li);
                     });
                 } else {

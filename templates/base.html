@@ -3,14 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
     <title>{% block title %}{% endblock %} - movaro</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=now_timestamp) }}">
+    
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico', v=now_timestamp) }}">
+    
+    {% block head %}{% endblock %}
 </head>
 <body>
     <script>
         // Script para evitar el "parpadeo" del tema claro al cargar la página
         (function() {
-            const theme = localStorage.getItem('theme') || 'light';
+            const theme = localStorage.getItem('theme') || 'dark';
             if (theme === 'dark') {
                 document.body.classList.add('dark-mode');
             }

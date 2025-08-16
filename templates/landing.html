@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movaro - Gestión de Turnos Online</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='landing_style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico', v=now_timestamp) }}">
+</head>
+<body>
+    <header class="navbar">
+        <div class="container">
+            <a href="{{ url_for('landing') }}" class="logo">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Movaro Logo">
+            </a>
+            <nav>
+                <a href="{{ url_for('login') }}" class="btn btn-secondary">Iniciar Sesión</a>
+                <a href="{{ url_for('registro') }}" class="btn btn-primary">Registrarse</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1>Gestiona tus turnos de forma sencilla y profesional.</h1>
+                <p>Organiza tus turnos, clientes y servicios en un solo lugar. Optimiza tu tiempo y potencia tu negocio.</p>
+                <a href="{{ url_for('registro') }}" class="btn btn-primary btn-lg">Empieza Ahora Gratis</a>
+            </div>
+        </section>
+
+        <section class="features">
+            <div class="container">
+                <h2>¿Qué puedes hacer con Movaro?</h2>
+                <div class="features-grid">
+                    <div class="feature-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        <h3>Gestión de Turnos</h3>
+                        <p>Agenda y visualiza todos tus turnos de un vistazo en un calendario intuitivo.</p>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-users"></i>
+                        <h3>Base de Datos de Clientes</h3>
+                        <p>Guarda el historial, fotos y preferencias de cada cliente para un servicio personalizado.</p>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-image"></i>
+                        <h3>Historial de Servicios</h3>
+                        <p>Registra los servicios realizados a cada cliente y adjunta imágenes de tus trabajos.</p>
+                    </div>
+                     <div class="feature-item">
+                        <i class="fas fa-cloud"></i>
+                        <h3>Accesible desde cualquier lugar</h3>
+                        <p>Accede a tu panel desde tu computadora, tablet o celular. Tu negocio, siempre contigo.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 Movaro. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+</body>
+</html>

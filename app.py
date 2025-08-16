@@ -19,16 +19,28 @@ MENSAJES_FIJOS = {
     'fidelizacion': "¡Hola, {{nombre_cliente}}! ✨ ¡Alcanzaste los {{total_turnos}} servicios y te ganaste un premio!"
 }
 app = Flask(__name__)
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax' # <-- AGREGÁ ESTA LÍNEA
-app.secret_key = 'mi_clave_secreta_super_dificil_v2' # Esta línea ya la tenés
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.secret_key = 'mi_clave_secreta_super_dificil_v2'
-DATABASE = '/data/agenda.db'
+
+@app.context_processor
+def inject_now():
+    import time
+    return {'now_timestamp': int(time.time())}
+
+# Configuración de la base de datos dependiente del entorno
+if os.environ.get('RENDER'):
+    # Estamos en producción (Render), usamos el disco persistente
+    DATABASE = '/data/agenda.db'
+else:
+    # Estamos en desarrollo (local), usamos un archivo local
+    DATABASE = 'agenda.db'
+
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 TOLERANCIA_MINUTOS = 10 
 DIAS_INACTIVIDAD = 30
 
 # --- CONFIGURACIÓN DE ADMIN ---
-ADMIN_EMAIL = "nailflow.ad@gmail.com"
+ADMIN_EMAIL = "movaro.ad@gmail.com"
 
 # --- DECORADOR PARA PROTEGER RUTAS DE ADMIN ---
 def admin_required(f):
@@ -83,12 +95,10 @@ def configuracion_publica():
     return render_template('configuracion_publica.html', url_actual=url_actual, nombre_publico_actual=nombre_publico_actual)
 # --- RUTAS PRINCIPALES Y DE AUTENTICACIÓN ---
 @app.route('/')
-def inicio_v2():
+def landing():
     if 'usuario_id' in session:
-        if session.get('usuario_email') == ADMIN_EMAIL:
-            return redirect('/superadmin')
         return redirect('/panel')
-    return redirect('/login')
+    return render_template('landing.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -113,7 +123,7 @@ def login():
             session['usuario_id'] = usuario['id']
             session['nombre_salon'] = usuario['nombre_salon']
             session['usuario_email'] = usuario['email']
-            return redirect('/')
+            return redirect('/panel')
         else:
             flash("Email o contraseña incorrectos.", "error")
             return redirect('/login')
@@ -147,7 +157,7 @@ def registro():
 def logout():
     session.clear()
     flash("Has cerrado la sesión.", "success")
-    return redirect('/login')
+    return redirect('/')
 
 # --- PANEL DE CONTROL DE USUARIO (COMPLETO Y CORRECTO) ---
 # Asegúrate de que urllib.parse esté importado al principio de tu app.py
