@@ -28,7 +28,7 @@
                     <div class="form-group">
                         <label for="avatar">Cambiar foto de perfil:</label>
                         <input type="hidden" name="cliente_id" value="{{ clienta.id }}">
-                        <input type="file" id="avatar" name="avatar" accept="image/*"  required class="form-control">
+                                                <input type="file" id="avatar" name="avatar" accept="image/*" capture="camera" required class="form-control">
                     </div>
                     <button type="submit" style="width:100%;">Subir Foto</button>
                 </form>
@@ -62,7 +62,7 @@
                                         </label>
                                         <input type="hidden" name="turno_id" value="{{ turno.id }}">
                                         <input type="hidden" name="cliente_id" value="{{ clienta.id }}">
-                                        <input type="file" id="foto-{{ turno.id }}" name="foto" accept="image/*"  required class="form-control">
+                                        <input type="file" id="foto-{{ turno.id }}" name="foto" accept="image/*" capture="camera" required class="form-control">
                                     </div>
                                     <button type="submit">Guardar</button>
                                 </form>

@@ -37,7 +37,7 @@ else:
 db_path = DATABASE
 print(f"--- Usando Base de Datos en: {db_path} ---")
 
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.config['UPLOAD_FOLDER'] = '/data/uploads' if os.environ.get('RENDER') else 'static/uploads'
 TOLERANCIA_MINUTOS = 10 
 DIAS_INACTIVIDAD = 30
 
