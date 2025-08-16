@@ -278,6 +278,41 @@ document.addEventListener('DOMContentLoaded', function() {
             modal.classList.add('modal-oculto');
         }
     });
+
+    // --- LÓGICA PARA ENVIAR EL FORMULARIO DE TURNO CON AJAX ---
+    const formTurno = document.getElementById('form-agregar-turno');
+    formTurno.addEventListener('submit', function(event) {
+        event.preventDefault(); // Evitamos el envío tradicional
+
+        const formData = new FormData(formTurno);
+        const submitButton = formTurno.querySelector('button[type="submit"]');
+        submitButton.disabled = true; // Deshabilitamos el botón para evitar doble envío
+        submitButton.textContent = 'Agendando...';
+
+        fetch('/agregar_turno', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(data.message); // Mostramos mensaje de éxito
+                window.location.reload(); // Recargamos la página para ver el nuevo turno
+            } else {
+                // Si hay un error, lo mostramos en una alerta
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error en la petición fetch:', error);
+            alert('Ocurrió un error de conexión. Por favor, intentá de nuevo.');
+        })
+        .finally(() => {
+            // Reactivamos el botón sea cual sea el resultado
+            submitButton.disabled = false;
+            submitButton.textContent = 'Agendar';
+        });
+    });
 });
 </script>
 {% endblock %}
