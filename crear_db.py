@@ -1,11 +1,16 @@
-import sqlite3
 import os
+import sqlite3
 
-# Usamos la ruta del disco de Render
-DATABASE = '/var/data/agenda.db'
-db_path = DATABASE 
-print(f"--- Creando/Actualizando Base de Datos en: {db_path} ---")
+# Configuración "inteligente" de la base de datos
+if os.environ.get('RENDER'):
+    # Estamos en producción (Render), usamos el disco persistente
+    DATABASE = '/data/agenda.db'
+else:
+    # Estamos en desarrollo (local), usamos un archivo en la misma carpeta
+    DATABASE = 'agenda.db'
 
+db_path = DATABASE
+print(f"--- Usando Base de Datos en: {db_path} ---")
 try:
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()

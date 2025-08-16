@@ -24,16 +24,18 @@ app.secret_key = 'mi_clave_secreta_super_dificil_v2'
 
 @app.context_processor
 def inject_now():
-    import time
     return {'now_timestamp': int(time.time())}
 
-# Configuración de la base de datos dependiente del entorno
+# Configuración "inteligente" de la base de datos
 if os.environ.get('RENDER'):
     # Estamos en producción (Render), usamos el disco persistente
     DATABASE = '/data/agenda.db'
 else:
-    # Estamos en desarrollo (local), usamos un archivo local
+    # Estamos en desarrollo (local), usamos un archivo en la misma carpeta
     DATABASE = 'agenda.db'
+
+db_path = DATABASE
+print(f"--- Usando Base de Datos en: {db_path} ---")
 
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 TOLERANCIA_MINUTOS = 10 
