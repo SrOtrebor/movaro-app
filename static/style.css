@@ -405,3 +405,14 @@ body:not(.dark-mode) .theme-toggle-btn {
 .hidden-file-input {
     display: none;
 }
+
+.button-group-upload {
+    display: flex;
+    gap: 10px; /* Adjust as needed for spacing between buttons */
+    flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
+    margin-top: 15px; /* Add some space above the buttons */
+}
+
+.button-group-upload .btn {
+    flex-grow: 1; /* Allow buttons to grow and fill available space */
+}

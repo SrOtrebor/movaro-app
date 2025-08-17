@@ -30,10 +30,12 @@
                         <input type="hidden" name="cliente_id" value="{{ clienta.id }}">
                                                 <input type="file" id="avatar" name="avatar" accept="image/*" class="hidden-file-input" data-camera-gallery-choice="true">
                     </div>
-                    <!-- Buttons to trigger file input -->
-                    <button type="button" class="btn btn-primary" data-target-input="avatar" data-action="camera">Tomar Foto</button>
-                    <button type="button" class="btn btn-secondary" data-target-input="avatar" data-action="gallery">Seleccionar de Galería</button>
-                    <button type="submit" style="width:100%;">Subir Foto</button>
+                    <div class="button-group-upload">
+                        <!-- Buttons to trigger file input -->
+                        <button type="button" class="btn btn-primary" data-target-input="avatar" data-action="camera">Tomar Foto</button>
+                        <button type="button" class="btn btn-secondary" data-target-input="avatar" data-action="gallery">Seleccionar de Galería</button>
+                        <button type="submit" class="btn btn-primary">Subir Foto</button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -68,10 +70,12 @@
                                         <!-- Este único input le dará a elegir al usuario entre galería o cámara en el móvil -->
                                         <input type="file" id="foto-turno-{{ turno.id }}" name="foto_turno" accept="image/*" class="hidden-file-input" data-camera-gallery-choice="true">
                                     </div>
-                                    <!-- Buttons to trigger file input -->
-                                    <button type="button" class="btn btn-primary" data-target-input="foto-turno-{{ turno.id }}" data-action="camera">Tomar Foto</button>
-                                    <button type="button" class="btn btn-secondary" data-target-input="foto-turno-{{ turno.id }}" data-action="gallery">Seleccionar de Galería</button>
-                                    <button type="submit">Guardar Foto</button>
+                                    <div class="button-group-upload">
+                                        <!-- Buttons to trigger file input -->
+                                        <button type="button" class="btn btn-primary" data-target-input="foto-turno-{{ turno.id }}" data-action="camera">Tomar Foto</button>
+                                        <button type="button" class="btn btn-secondary" data-target-input="foto-turno-{{ turno.id }}" data-action="gallery">Seleccionar de Galería</button>
+                                        <button type="submit" class="btn btn-primary">Guardar Foto</button>
+                                    </div>
                                 </form>
                             </div>
                         </div>
