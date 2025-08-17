@@ -28,7 +28,7 @@
                     <div class="form-group">
                         <label for="avatar">Cambiar foto de perfil:</label>
                         <input type="hidden" name="cliente_id" value="{{ clienta.id }}">
-                                                <input type="file" id="avatar" name="avatar" accept="image/*" capture="camera" required class="form-control">
+                                                <input type="file" id="avatar" name="avatar" accept="image/*" required class="form-control">
                     </div>
                     <button type="submit" style="width:100%;">Subir Foto</button>
                 </form>
@@ -55,16 +55,17 @@
                             {% endif %}
                             
                             <div class="turno-form-container">
-                                <form action="/subir_foto" method="post" enctype="multipart/form-data">
+                                <form action="/subir_foto" method="post" enctype="multipart/form-data" class="form-subir-foto">
+                                    <input type="hidden" name="turno_id" value="{{ turno.id }}">
+                                    <input type="hidden" name="cliente_id" value="{{ clienta.id }}">
                                     <div class="form-group">
-                                        <label for="foto-{{ turno.id }}">
-                                            {% if turno.foto_path %}Cambiar foto{% else %}Subir foto{% endif %} del trabajo:
+                                        <label for="foto-turno-{{ turno.id }}">
+                                            {% if turno.foto_path %}Cambiar foto{% else %}Subir foto{% endif %}:
                                         </label>
-                                        <input type="hidden" name="turno_id" value="{{ turno.id }}">
-                                        <input type="hidden" name="cliente_id" value="{{ clienta.id }}">
-                                        <input type="file" id="foto-{{ turno.id }}" name="foto" accept="image/*" capture="camera" required class="form-control">
+                                        <!-- Este único input le dará a elegir al usuario entre galería o cámara en el móvil -->
+                                        <input type="file" id="foto-turno-{{ turno.id }}" name="foto_turno" accept="image/*" class="form-control" required>
                                     </div>
-                                    <button type="submit">Guardar</button>
+                                    <button type="submit">Guardar Foto</button>
                                 </form>
                             </div>
                         </div>

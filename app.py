@@ -3,6 +3,7 @@ import calendar
 import os
 import time
 import urllib.parse
+import base64, io
 from PIL import Image, ImageOps
 from flask import Flask, render_template, request, redirect, flash, session, jsonify, get_flashed_messages
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -38,6 +39,7 @@ db_path = DATABASE
 print(f"--- Usando Base de Datos en: {db_path} ---")
 
 app.config['UPLOAD_FOLDER'] = '/data/uploads' if os.environ.get('RENDER') else 'static/uploads'
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 TOLERANCIA_MINUTOS = 10 
 DIAS_INACTIVIDAD = 30
 
@@ -472,45 +474,56 @@ def ver_cliente_detalle(cliente_id):
 @app.route('/subir_foto', methods=['POST'])
 def subir_foto():
     if 'usuario_id' not in session: return redirect('/login')
-    turno_id = request.form['turno_id']
-    cliente_id = request.form['cliente_id']
-    foto = request.files.get('foto')
+    
+    # Usamos .get() para evitar errores si los campos no vienen, y redirigimos con un mensaje claro.
+    turno_id = request.form.get('turno_id')
+    cliente_id = request.form.get('cliente_id')
+    if not all([turno_id, cliente_id]):
+        flash("Error: No se pudo identificar el turno o el cliente. Inténtalo de nuevo.", "error")
+        # Redirigir a una página genérica si no tenemos cliente_id
+        return redirect('/clientes')
+
+    foto = request.files.get('foto_turno')
 
     if foto and foto.filename != '':
-        nombre_archivo = secure_filename(foto.filename)
-        nombre_unico = f"{turno_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{nombre_archivo}"
+        nombre_original = secure_filename(foto.filename)
+        nombre_unico = f"{turno_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{nombre_original}"
         ruta_guardado = os.path.join(app.config['UPLOAD_FOLDER'], nombre_unico)
 
-        # --- MAGIA DE OPTIMIZACIÓN AQUÍ ---
         try:
-            imagen = Image.open(foto)
+            imagen = Image.open(foto.stream) # Usamos foto.stream para procesar la imagen
             imagen = ImageOps.exif_transpose(imagen)
-            # Opcional: Si querés que ninguna foto de trabajo supere los 1080px de ancho
+            
+            # Opcional: Redimensionar si es muy grande
             # if imagen.width > 1080:
             #     imagen.thumbnail((1080, 1080))
 
-            # Guardamos la imagen optimizada (calidad 85 es un excelente balance)
             imagen.save(ruta_guardado, optimize=True, quality=85)
         except Exception as e:
             flash(f"Hubo un error al procesar la imagen: {e}", "error")
             return redirect(f'/cliente/{cliente_id}')
-        # --- FIN DE LA MAGIA ---
 
         conn = sqlite3.connect(DATABASE)
         cursor = conn.cursor()
         cursor.execute("UPDATE turnos SET foto_path = ? WHERE id = ? AND usuario_id = ?", (nombre_unico, turno_id, session['usuario_id']))
         conn.commit()
         conn.close()
-        flash("¡Foto subida con éxito!")
+        flash("¡Foto subida con éxito!", "success")
     else:
-        flash("No se seleccionó ningún archivo.")
+        flash("No se seleccionó ningún archivo.", "error")
 
     return redirect(f'/cliente/{cliente_id}')
 
 @app.route('/subir_avatar', methods=['POST'])
 def subir_avatar():
     if 'usuario_id' not in session: return redirect('/login')
-    cliente_id = request.form['cliente_id']
+    
+    # Usamos .get() para evitar errores si el campo no viene, y redirigimos con un mensaje claro.
+    cliente_id = request.form.get('cliente_id')
+    if not cliente_id:
+        flash("Error: No se pudo identificar el cliente. Inténtalo de nuevo.", "error")
+        return redirect('/clientes') # Redirigir a la lista de clientes si no hay cliente_id
+
     avatar = request.files.get('avatar')
 
     if avatar and avatar.filename != '':
@@ -518,9 +531,8 @@ def subir_avatar():
         nombre_unico = f"avatar_{cliente_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{nombre_archivo}"
         ruta_guardado = os.path.join(app.config['UPLOAD_FOLDER'], nombre_unico)
 
-        # --- MAGIA DE OPTIMIZACIÓN Y REDUCCIÓN DE TAMAÑO ---
         try:
-            imagen = Image.open(avatar)
+            imagen = Image.open(avatar.stream) # Usamos avatar.stream para procesar la imagen
             imagen = ImageOps.exif_transpose(imagen)
             # Reducimos la imagen a un tamaño máximo de 400x400 píxeles, manteniendo la proporción
             imagen.thumbnail((400, 400))
@@ -530,7 +542,6 @@ def subir_avatar():
         except Exception as e:
             flash(f"Hubo un error al procesar la imagen: {e}", "error")
             return redirect(f'/cliente/{cliente_id}')
-        # --- FIN DE LA MAGIA ---
 
         conn = sqlite3.connect(DATABASE)
         cursor = conn.cursor()
