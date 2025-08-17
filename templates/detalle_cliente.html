@@ -28,7 +28,7 @@
                     <div class="form-group">
                         <label for="avatar">Cambiar foto de perfil:</label>
                         <input type="hidden" name="cliente_id" value="{{ clienta.id }}">
-                                                <input type="file" id="avatar" name="avatar" accept="image/*" required class="form-control">
+                                                <input type="file" id="avatar" name="avatar" accept="image/*" required class="form-control" data-camera-gallery-choice="true">
                     </div>
                     <button type="submit" style="width:100%;">Subir Foto</button>
                 </form>
@@ -63,7 +63,7 @@
                                             {% if turno.foto_path %}Cambiar foto{% else %}Subir foto{% endif %}:
                                         </label>
                                         <!-- Este único input le dará a elegir al usuario entre galería o cámara en el móvil -->
-                                        <input type="file" id="foto-turno-{{ turno.id }}" name="foto_turno" accept="image/*" class="form-control" required>
+                                        <input type="file" id="foto-turno-{{ turno.id }}" name="foto_turno" accept="image/*" class="form-control" required data-camera-gallery-choice="true">
                                     </div>
                                     <button type="submit">Guardar Foto</button>
                                 </form>
