@@ -401,3 +401,7 @@ body:not(.dark-mode) .theme-toggle-btn {
 .item-lista-accion.desactivado * { pointer-events: none; }
 .item-lista-accion.desactivado .boton-eliminar-notificacion { pointer-events: auto; }
 .boton-eliminar-notificacion { background-color: var(--color-rojo-peligro) !important; padding: 5px 10px; font-size: 1em; line-height: 1; border-radius: 50%; }
+
+.hidden-file-input {
+    display: none;
+}

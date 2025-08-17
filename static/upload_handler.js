@@ -1,30 +1,30 @@
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Function to detect if it's a mobile device
-    function isMobileDevice() {
-        return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
-    }
+    document.querySelectorAll('button[data-target-input][data-action]').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetInputId = this.dataset.targetInput;
+            const action = this.dataset.action;
+            const fileInput = document.getElementById(targetInputId);
 
-    document.querySelectorAll('input[type="file"][data-camera-gallery-choice="true"]').forEach(inputElement => {
-        inputElement.addEventListener('click', function(event) {
-            if (isMobileDevice()) {
-                event.preventDefault(); // Prevent the default file picker from opening immediately
-
-                const fileInput = this;
-
-                const choice = confirm("¿Deseas tomar una foto con la cámara o seleccionar de la galería?");
-
-                if (choice) { // User chose Camera (or OK)
-                    fileInput.removeAttribute('accept'); // Remove accept to allow all file types for camera
-                    fileInput.setAttribute('capture', 'environment'); // Prefer rear camera
-                    fileInput.click(); // Re-trigger the click to open camera
-                } else { // User chose Gallery (or Cancel)
-                    fileInput.removeAttribute('capture'); // Remove capture to open gallery
-                    fileInput.setAttribute('accept', 'image/*'); // Ensure only images are selectable
-                    fileInput.click(); // Re-trigger the click to open gallery
-                }
+            if (!fileInput) {
+                console.error('Target file input not found:', targetInputId);
+                return;
             }
-            // If not a mobile device, let the default click behavior happen
+
+            // Reset attributes first to ensure clean state
+            fileInput.removeAttribute('capture');
+            fileInput.removeAttribute('accept');
+
+            if (action === 'camera') {
+                fileInput.setAttribute('capture', 'environment'); // Prefer rear camera
+                fileInput.setAttribute('accept', 'image/*'); // Ensure only images are selectable for camera
+            } else if (action === 'gallery') {
+                // No capture attribute for gallery
+                fileInput.setAttribute('accept', 'image/*'); // Ensure only images are selectable for gallery
+            }
+
+            // Trigger the click on the hidden file input
+            fileInput.click();
         });
     });
 });
