@@ -12,7 +12,7 @@
             <div class="card">
                 <div class="avatar-container">
                     {% if clienta.avatar_path %}
-                        <img src="{{ url_for('static', filename='uploads/' + clienta.avatar_path) }}" alt="Avatar" class="avatar-img">
+                        <img src="{{ url_for('uploaded_file', filename=clienta.avatar_path) }}" alt="Avatar" class="avatar-img">
                     {% else %}
                         <div class="avatar-placeholder">{{ clienta.nombre[0] if clienta.nombre }}</div>
                     {% endif %}
@@ -50,7 +50,7 @@
                             {% if turno.foto_path %}
                                 <div class="turno-foto-container">
                                     <p><strong>Foto del trabajo:</strong></p>
-                                    <img src="{{ url_for('static', filename='uploads/' + turno.foto_path) }}" alt="Foto del trabajo" class="turno-foto-thumbnail">
+                                    <img src="{{ url_for('uploaded_file', filename=turno.foto_path) }}" alt="Foto del trabajo" class="turno-foto-thumbnail">
                                 </div>
                             {% endif %}
                             

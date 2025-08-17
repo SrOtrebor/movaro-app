@@ -5,7 +5,7 @@ import time
 import urllib.parse
 import base64, io
 from PIL import Image, ImageOps
-from flask import Flask, render_template, request, redirect, flash, session, jsonify, get_flashed_messages
+from flask import Flask, render_template, request, redirect, flash, session, jsonify, get_flashed_messages, send_from_directory
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from functools import wraps
@@ -553,6 +553,12 @@ def subir_avatar():
         flash("No se seleccionó ningún archivo.")
 
     return redirect(f'/cliente/{cliente_id}')
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    # Asegúrate de que el filename sea seguro para prevenir ataques de recorrido de directorio
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
 @app.route('/servicios', methods=['GET', 'POST'])
 def gestionar_servicios():
     if 'usuario_id' not in session: return redirect('/login')
