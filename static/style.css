@@ -350,6 +350,34 @@ body:not(.dark-mode) .navbar .hamburger {
     border-radius: 5px;
 }
 
+/* Estilo para el día de HOY en el MINI-CALENDARIO del panel */
+.mini-calendario .dia-hoy .dia-numero {
+    background-color: var(--color-primario);
+    color: #fff;
+    border-radius: 50%;
+    font-weight: bold;
+    width: 2.2em;
+    height: 2.2em;
+    line-height: 2.2em;
+    text-align: center;
+    margin: 0 auto; /* Lo centramos horizontalmente */
+    display: block;
+}
+
+/* Estilo para el día de HOY en el CALENDARIO GRANDE */
+.calendario-tabla .dia-hoy .dia-numero {
+    background-color: var(--color-primario);
+    color: #fff;
+    border-radius: 50%;
+    font-weight: bold;
+    width: 1.8em; /* Un poco más pequeño para que encaje bien */
+    height: 1.8em;
+    line-height: 1.8em;
+    text-align: center;
+    margin: 0; /* Sin margen para que se alinee arriba */
+    float: left; /* Alineado a la izquierda */
+}
+
 /* ======================================= */
 /* PÁGINA DETALLE DE CLIENTE               */
 /* ======================================= */

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Movaro - Gestión de Turnos Online</title>
+    <title>Movaro - Deja de Perder Clientes por WhatsApp. Automatiza tu Agenda.</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='landing_style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico', v=now_timestamp) }}">
@@ -24,39 +24,89 @@
     <main>
         <section class="hero">
             <div class="container">
-                <h1>Gestiona tus turnos de forma sencilla y profesional.</h1>
-                <p>Organiza tus turnos, clientes y servicios en un solo lugar. Optimiza tu tiempo y potencia tu negocio.</p>
+                <h1>Deja de perder clientes por WhatsApp. Automatiza tu agenda.</h1>
+                <p class="hero-subtitle">Recupera tu tiempo, proyecta una imagen profesional y llena tu calendario con el asistente de turnos diseñado para ti.</p>
                 <a href="{{ url_for('registro') }}" class="btn btn-primary btn-lg">Empieza Ahora Gratis</a>
+                <p class="launch-offer">¡Oferta de Lanzamiento! Los primeros 30 suscriptores obtienen un 50% de descuento para siempre.</p>
+            </div>
+        </section>
+
+        <section class="before-after">
+            <div class="container">
+                <div class="comparison-grid">
+                    <div class="comparison-column">
+                        <h3>El caos de los mensajes</h3>
+                        <img src="{{ url_for('static', filename='Caos de mensajes.png') }}" alt="Comparación antes de Movaro">
+                    </div>
+                    <div class="comparison-column">
+                        <h3>La claridad de Movaro</h3>
+                        <img src="{{ url_for('static', filename='Claridad de Movaro.png') }}" alt="Comparación después de Movaro">
+                    </div>
+                </div>
+                <p>Deja atrás el desorden de las apps de mensajería y dale a tus clientes una experiencia de reserva profesional que te ahorra horas.</p>
             </div>
         </section>
 
         <section class="features">
             <div class="container">
-                <h2>¿Qué puedes hacer con Movaro?</h2>
+                <h2>Tu negocio, más inteligente y rentable</h2>
                 <div class="features-grid">
                     <div class="feature-item">
-                        <i class="fas fa-calendar-alt"></i>
-                        <h3>Gestión de Turnos</h3>
-                        <p>Agenda y visualiza todos tus turnos de un vistazo en un calendario intuitivo.</p>
+                        <i class="fas fa-link"></i>
+                        <h3>Tu Propio Link de Agenda</h3>
+                        <p>Comparte un enlace profesional y deja que tus clientes agenden solos. Proyecta una imagen impecable y olvídate del ida y vuelta.</p>
                     </div>
                     <div class="feature-item">
-                        <i class="fas fa-users"></i>
-                        <h3>Base de Datos de Clientes</h3>
-                        <p>Guarda el historial, fotos y preferencias de cada cliente para un servicio personalizado.</p>
+                        <i class="fas fa-bell"></i>
+                        <h3>Tu Asistente Proactivo</h3>
+                        <p>Movaro te alerta sobre clientes inactivos y cumpleaños para que nunca pierdas una oportunidad de fidelizarlos.</p>
                     </div>
                     <div class="feature-item">
-                        <i class="fas fa-image"></i>
-                        <h3>Historial de Servicios</h3>
-                        <p>Registra los servicios realizados a cada cliente y adjunta imágenes de tus trabajos.</p>
+                        <i class="fas fa-address-card"></i>
+                        <h3>Ficha de Cliente 360°</h3>
+                        <p>Guarda el historial completo de visitas y una galería de fotos de tus trabajos para cada cliente. Ofrece un servicio ultra-personalizado.</p>
                     </div>
                      <div class="feature-item">
-                        <i class="fas fa-cloud"></i>
-                        <h3>Accesible desde cualquier lugar</h3>
-                        <p>Accede a tu panel desde tu computadora, tablet o celular. Tu negocio, siempre contigo.</p>
+                        <i class="fas fa-bullhorn"></i>
+                        <h3>Herramientas de Marketing</h3>
+                        <p>Envía campañas de promos y novedades a toda tu base de clientes directamente desde la app.</p>
                     </div>
                 </div>
             </div>
         </section>
+
+        <!-- <section class="testimonials">
+            <div class="container">
+                <h2>Profesionales como tú ya disfrutan del cambio</h2>
+                <div class="testimonials-grid">
+                    <div class="testimonial-card">
+                        <img src="https://i.pravatar.cc/80?img=1" alt="Foto de profesional">
+                        <p class="quote">"Me cambió la forma de trabajar. Ahora tengo más tiempo para mis clientas y mi negocio se ve mucho más profesional."</p>
+                        <p class="author">
+                            Camila Rodriguez
+                            <span>@camilanails.studio</span>
+                        </p>
+                    </div>
+                    <div class="testimonial-card">
+                        <img src="https://i.pravatar.cc/80?img=2" alt="Foto de profesional">
+                        <p class="quote">"¡El asistente proactivo es genial! Me ayudó a recuperar dos clientas que no venían hace meses. Se paga solo."</p>
+                        <p class="author">
+                            Martín Gonzalez
+                            <span>@martin.barber</span>
+                        </p>
+                    </div>
+                     <div class="testimonial-card">
+                        <img src="https://i.pravatar.cc/80?img=3" alt="Foto de profesional">
+                        <p class="quote">"Tener la ficha de cada clienta con fotos de trabajos anteriores es un antes y un después. Mis clientas lo aman."</p>
+                        <p class="author">
+                            Sofía Pérez
+                            <span>@sofipmakeup</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section> -->
+
     </main>
 
     <footer class="footer">
@@ -64,5 +114,10 @@
             <p>&copy; 2025 Movaro. Todos los derechos reservados.</p>
         </div>
     </footer>
+
+    <a href="https://wa.me/5491168855834" class="whatsapp-fab" target="_blank" title="Contactar por WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+
 </body>
 </html>

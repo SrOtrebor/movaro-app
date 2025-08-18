@@ -27,7 +27,7 @@
                     {% if dia == 0 %}
                         <td class="dia-otro-mes"></td>
                     {% else %}
-                        <td class="celda-dia {% if dia in turnos_por_dia %}dia-ocupado{% endif %}" 
+                        <td class="celda-dia {% if dia in turnos_por_dia %}dia-ocupado{% endif %} {% if dia == fecha_hoy.day and mes == fecha_hoy.month and ano == fecha_hoy.year %}dia-hoy{% endif %}" 
     data-fecha="{{ ano }}-{{ '%02d'|format(mes) }}-{{ '%02d'|format(dia) }}"
     data-url-detalle="/dia/{{ ano }}/{{ mes }}/{{ dia }}">
     
