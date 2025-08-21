@@ -5,7 +5,7 @@ import time
 import urllib.parse
 import base64, io
 from PIL import Image, ImageOps
-from flask import Flask, render_template, request, redirect, flash, session, jsonify, get_flashed_messages, send_from_directory
+from flask import Flask, render_template, request, redirect, flash, session, jsonify, get_flashed_messages, send_from_directory, url_for, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from functools import wraps
@@ -470,6 +470,63 @@ def ver_cliente_detalle(cliente_id):
         return render_template('detalle_cliente.html', clienta=cliente, turnos=turnos_del_cliente)
     conn.close()
     return redirect('/clientes')
+
+@app.route('/cliente/<int:cliente_id>/editar', methods=['GET', 'POST'])
+def editar_cliente(cliente_id):
+    if 'usuario_id' not in session: return redirect('/login')
+    usuario_id_actual = session['usuario_id']
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+        nombre = request.form['nombre']
+        apellido = request.form['apellido']
+        telefono = request.form['telefono']
+        cumpleanos = request.form['cumpleanos']
+
+        cursor.execute("""UPDATE clientes 
+                          SET nombre = ?, apellido = ?, telefono = ?, cumpleanos = ?
+                          WHERE id = ? AND usuario_id = ?""",
+                       (nombre, apellido, telefono, cumpleanos, cliente_id, usuario_id_actual))
+        conn.commit()
+        conn.close()
+        flash('¡Cliente actualizado con éxito!', 'success')
+        return redirect(url_for('ver_cliente_detalle', cliente_id=cliente_id))
+
+    # Lógica GET
+    cursor.execute("SELECT * FROM clientes WHERE id = ? AND usuario_id = ?", (cliente_id, usuario_id_actual))
+    cliente = cursor.fetchone()
+    conn.close()
+    if cliente:
+        return render_template('editar_cliente.html', clienta=cliente)
+    return redirect('/clientes')
+
+@app.route('/cliente/<int:cliente_id>/eliminar', methods=['POST'])
+def eliminar_cliente(cliente_id):
+    if 'usuario_id' not in session: return redirect('/login')
+    usuario_id_actual = session['usuario_id']
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    # Opcional: borrar el avatar antes de borrar el cliente
+    cursor.execute("SELECT avatar_path FROM clientes WHERE id = ? AND usuario_id = ?", (cliente_id, usuario_id_actual))
+    cliente = cursor.fetchone()
+    if cliente and cliente['avatar_path']:
+        try:
+            os.remove(os.path.join(app.config['UPLOAD_FOLDER'], cliente['avatar_path']))
+        except (OSError, TypeError):
+            pass # Si el archivo no existe, no hacemos nada
+
+    # Borrar turnos asociados
+    cursor.execute("DELETE FROM turnos WHERE cliente_id = ? AND usuario_id = ?", (cliente_id, usuario_id_actual))
+    # Borrar cliente
+    cursor.execute("DELETE FROM clientes WHERE id = ? AND usuario_id = ?", (cliente_id, usuario_id_actual))
+    conn.commit()
+    conn.close()
+    flash('Cliente y todos sus turnos han sido eliminados.', 'success')
+    return redirect(url_for('ver_clientes'))
 
 @app.route('/subir_foto', methods=['POST'])
 def subir_foto():

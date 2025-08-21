@@ -3,10 +3,13 @@
 {% block title %}Mis Clientes{% endblock %}
 
 {% block content %}
-    <h1>Mis Clientes</h1>
+    <div class="header-con-boton">
+        <h1>Mis Clientes</h1>
+        <button id="btn-abrir-modal-cliente" class="boton-accion">Nuevo Cliente</button>
+    </div>
     <p>Agregá nuevos clientes o usá el buscador para encontrar uno existente.</p>
     
-    <div class="card" style="margin-top: 20px; margin-bottom: 20px;">
+    <div class="card buscar-cliente-card" style="margin-top: 20px; margin-bottom: 20px;">
         <form method="get" action="{{ url_for('ver_clientes') }}" style="display: flex; gap: 10px;">
             <input type="search" name="q" placeholder="Buscar por nombre o apellido..." value="{{ query or '' }}" class="form-control" style="flex-grow: 1;">
             <button type="submit" class="boton-accion">Buscar</button>
@@ -18,60 +21,98 @@
 
     <div class="card">
         <h2>Listado de Clientes</h2>
-        <table class="stats-table tabla-responsiva">
-            <thead>
-                <tr>
-                    <th>Nombre y Apellido</th>
-                    <th>Teléfono</th>
-                    <th>Acción</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for cliente in clientes %}
-                <tr>
-                    <td data-label="Nombre">{{ cliente.nombre }} {{ cliente.apellido }}</td>
-                    <td data-label="Teléfono">{{ cliente.telefono or 'No especificado' }}</td>
-                    <td data-label="Acción">
-                        <a href="/cliente/{{ cliente.id }}" class="boton-accion">Ver Detalle</a>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="3" style="text-align: center;">
-                        {% if query %}
-                            No se encontraron clientes con el término "<strong>{{ query }}</strong>".
+        <div class="clientes-grid">
+            {% for cliente in clientes %}
+            <div class="cliente-card">
+                <a href="/cliente/{{ cliente.id }}" class="cliente-card-link">
+                    <div class="cliente-card-avatar">
+                        {% if cliente.avatar_path %}
+                            <img src="{{ url_for('uploaded_file', filename=cliente.avatar_path) }}" alt="Avatar de {{ cliente.nombre }}">
                         {% else %}
-                            Aún no tenés clientes registrados.
+                            <div class="avatar-placeholder-list">{{ cliente.nombre[0] if cliente.nombre }}</div>
                         {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                    </div>
+                    <div class="cliente-card-info">
+                        <h3>{{ cliente.nombre }} {{ cliente.apellido }}</h3>
+                        <p>{{ cliente.telefono or 'No especificado' }}</p>
+                    </div>
+                </a>
+                <a href="/cliente/{{ cliente.id }}" class="boton-accion">Ver Detalle</a>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                {% if query %}
+                    <p>No se encontraron clientes con el término "<strong>{{ query }}</strong>".</p>
+                {% else %}
+                    <p>Aún no tenés clientes registrados. ¡Agregá uno nuevo haciendo clic en "Nuevo Cliente"!</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
     </div>
 
-    <hr>
-
-    <div class="card">
-        <h2>Nuevo Cliente</h2>
-        <form action="/agregar_cliente" method="post">
-            <div class="form-group">
-                <label for="nombre">Nombre:</label>
-                <input type="text" id="nombre" name="nombre" required class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="apellido">Apellido:</label>
-                <input type="text" id="apellido" name="apellido" required class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="telefono">Teléfono:</label>
-                <input type="tel" id="telefono" name="telefono" class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="cumpleanos">Cumpleaños:</label>
-                <input type="date" id="cumpleanos" name="cumpleanos" class="form-control">
-            </div>
-            <button type="submit">Guardar Cliente</button>
-        </form>
+    <!-- Modal para Nuevo Cliente -->
+    <div id="modal-nuevo-cliente" class="modal-oculto">
+        <div class="modal-contenido">
+            <span class="modal-cerrar" id="cerrar-modal-cliente">&times;</span>
+            <h2>Nuevo Cliente</h2>
+            <form action="/agregar_cliente" method="post">
+                <div class="form-group">
+                    <label for="nombre">Nombre:</label>
+                    <input type="text" id="nombre" name="nombre" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="apellido">Apellido:</label>
+                    <input type="text" id="apellido" name="apellido" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="telefono">Teléfono:</label>
+                    <input type="tel" id="telefono" name="telefono" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="cumpleanos">Cumpleaños:</label>
+                    <input type="date" id="cumpleanos" name="cumpleanos" class="form-control">
+                </div>
+                <button type="submit" class="boton-accion">Guardar Cliente</button>
+            </form>
+        </div>
     </div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('modal-nuevo-cliente');
+    const btnAbrir = document.getElementById('btn-abrir-modal-cliente');
+    const btnCerrar = document.getElementById('cerrar-modal-cliente');
+
+    // Función para abrir el modal
+    const abrirModal = () => {
+        modal.classList.remove('modal-oculto');
+        modal.classList.add('modal-visible');
+    };
+
+    // Función para cerrar el modal
+    const cerrarModal = () => {
+        modal.classList.remove('modal-visible');
+        modal.classList.add('modal-oculto');
+    };
+
+    // Eventos
+    if (btnAbrir) {
+        btnAbrir.addEventListener('click', abrirModal);
+    }
+    if (btnCerrar) {
+        btnCerrar.addEventListener('click', cerrarModal);
+    }
+
+    // Cierra el modal si se hace clic fuera del contenido
+    window.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            cerrarModal();
+        }
+    });
+});
+</script>
 {% endblock %}

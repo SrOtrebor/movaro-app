@@ -125,5 +125,6 @@
         }
     </script>
     <script src="{{ url_for('static', filename='upload_handler.js', v=now_timestamp) }}"></script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>

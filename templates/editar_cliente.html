@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Cliente{% endblock %}
+
+{% block content %}
+    <h1>Editar Cliente</h1>
+    <p>Modificá la información de {{ clienta.nombre }} {{ clienta.apellido }} y guardá los cambios.</p>
+
+    <div class="card">
+        <form method="post" action="{{ url_for('editar_cliente', cliente_id=clienta.id) }}">
+            <div class="form-group">
+                <label for="nombre">Nombre:</label>
+                <input type="text" id="nombre" name="nombre" class="form-control" value="{{ clienta.nombre }}" required>
+            </div>
+            <div class="form-group">
+                <label for="apellido">Apellido:</label>
+                <input type="text" id="apellido" name="apellido" class="form-control" value="{{ clienta.apellido }}" required>
+            </div>
+            <div class="form-group">
+                <label for="telefono">Teléfono:</label>
+                <input type="tel" id="telefono" name="telefono" class="form-control" value="{{ clienta.telefono or '' }}">
+            </div>
+            <div class="form-group">
+                <label for="cumpleanos">Cumpleaños:</label>
+                <input type="date" id="cumpleanos" name="cumpleanos" class="form-control" value="{{ clienta.cumpleanos or '' }}">
+            </div>
+            <div class="grupo-botones-accion">
+                <button type="submit" class="boton-accion">Guardar Cambios</button>
+                <a href="{{ url_for('ver_cliente_detalle', cliente_id=clienta.id) }}" class="boton-accion" style="background-color: #6c757d;">Cancelar</a>
+            </div>
+        </form>
+    </div>
+
+    <hr>
+
+    <div class="card">
+        <h2>Zona de Peligro</h2>
+        <p>La eliminación de un cliente es permanente y no se puede deshacer. Se borrarán también todos sus turnos asociados.</p>
+        <form method="post" action="{{ url_for('eliminar_cliente', cliente_id=clienta.id) }}" onsubmit="return confirm('¿Estás absolutamente seguro de que querés eliminar a este cliente? Esta acción no se puede deshacer.');">
+            <button type="submit" class="boton-accion" style="background-color: var(--color-rojo-peligro);">Eliminar Cliente Permanentemente</button>
+        </form>
+    </div>
+
+{% endblock %}

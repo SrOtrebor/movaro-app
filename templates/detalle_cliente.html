@@ -18,7 +18,10 @@
                     {% endif %}
                 </div>
                 
-                <h2>{{ clienta.nombre }} {{ clienta.apellido }}</h2>
+                <div class="header-con-boton">
+                    <h2>{{ clienta.nombre }} {{ clienta.apellido }}</h2>
+                    <a href="/cliente/{{ clienta.id }}/editar" class="boton-accion">Editar</a>
+                </div>
                 <p><strong>Teléfono:</strong> {{ clienta.telefono or 'No especificado' }}</p>
                 <p><strong>Cumpleaños:</strong> {{ clienta.cumpleanos or 'No especificado' }}</p>
 
