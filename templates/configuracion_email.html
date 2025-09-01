@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Configuración de Email (SMTP)</h1>
+
+    <!-- Bloque de ayuda sobre contraseñas de aplicación -->
+    <div class="alert alert-info" role="alert">
+      <h4 class="alert-heading">¿Problemas para conectar? ¡Usa una Contraseña de Aplicación!</h4>
+      <p>
+        Para mayor seguridad, servicios como <strong>Gmail</strong> y <strong>Outlook</strong> a menudo requieren una "contraseña de aplicación" para conectar apps de terceros como Movaro. Es una contraseña especial que se usa en lugar de tu contraseña principal solo para esta aplicación.
+      </p>
+      <hr>
+      <p class="mb-0">
+        Sigue las guías oficiales para generar la tuya:
+        <ul>
+          <li><a href="https://support.google.com/accounts/answer/185833" target="_blank" rel="noopener noreferrer">Guía para Google / Gmail</a></li>
+          <li><a href="https://support.microsoft.com/es-es/account-billing/usar-contrase%C3%B1as-de-aplicaci%C3%B3n-con-aplicaciones-que-no-admiten-la-verificaci%C3%B3n-en-dos-pasos-5896ed9b-4263-e681-128a-a6f2979a7944" target="_blank" rel="noopener noreferrer">Guía para Microsoft / Outlook / Hotmail</a></li>
+        </ul>
+      </p>
+    </div>
+    <!-- Fin del bloque de ayuda -->
+
+    <div class="card">
+        <div class="card-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('configuracion_email') }}" id="email-config-form">
+                <div class="mb-3">
+                    <label for="smtp_server" class="form-label">Servidor SMTP:</label>
+                    <input type="text" class="form-control" id="smtp_server" name="smtp_server" value="{{ config.smtp_server if config else '' }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="smtp_port" class="form-label">Puerto SMTP:</label>
+                    <input type="number" class="form-control" id="smtp_port" name="smtp_port" value="{{ config.smtp_port if config else '587' }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="smtp_usuario" class="form-label">Usuario SMTP (tu email):</label>
+                    <input type="email" class="form-control" id="smtp_usuario" name="smtp_usuario" value="{{ config.smtp_usuario if config else '' }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="smtp_password" class="form-label">Contraseña SMTP:</label>
+                    <input type="password" class="form-control" id="smtp_password" name="smtp_password" placeholder="Dejar en blanco para no cambiar">
+                    <div class="form-text">
+                        <strong>Importante:</strong> Por seguridad, la contraseña no se muestra. Si ya la guardaste y no quieres cambiarla, deja este campo vacío.
+                    </div>
+                </div>
+                
+                <div class="d-flex align-items-center">
+                    <button type="submit" class="btn btn-primary">Guardar Configuración</button>
+                    <button type="button" id="probar-conexion-btn" class="btn btn-secondary ms-2">Probar Conexión</button>
+                    <div id="resultado-prueba" class="ms-3"></div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() if super }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const testBtn = document.getElementById('probar-conexion-btn');
+    const resultDiv = document.getElementById('resultado-prueba');
+    
+    testBtn.addEventListener('click', function () {
+        const smtpServer = document.getElementById('smtp_server').value;
+        const smtpPort = document.getElementById('smtp_port').value;
+        const smtpUser = document.getElementById('smtp_usuario').value;
+        const smtpPass = document.getElementById('smtp_password').value;
+
+        if (!smtpPass) {
+            resultDiv.innerHTML = `<strong style="color: orange;">Por favor, ingresa una contraseña para probar la conexión.</strong>`;
+            return;
+        }
+
+        resultDiv.innerHTML = `<span style="color: blue;">Probando conexión...</span>`;
+        testBtn.disabled = true;
+        testBtn.textContent = 'Probando...';
+
+        fetch('{{ url_for("probar_email") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                smtp_server: smtpServer,
+                smtp_port: smtpPort,
+                smtp_usuario: smtpUser,
+                smtp_password: smtpPass
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                resultDiv.innerHTML = `<strong style="color: green;">${data.message}</strong>`;
+            } else {
+                resultDiv.innerHTML = `<strong style="color: red;">${data.message}</strong>`;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            resultDiv.innerHTML = `<strong style="color: red;">Error de red. No se pudo contactar al servidor.</strong>`;
+        })
+        .finally(() => {
+            testBtn.disabled = false;
+            testBtn.textContent = 'Probar Conexión';
+        });
+    });
+});
+</script>
+{% endblock %}
