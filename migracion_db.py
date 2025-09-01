@@ -1,7 +1,13 @@
 import sqlite3
+import os
 
-# El nombre de la base de datos que usa la aplicación
-DATABASE = 'agenda.db'
+# Configuración "inteligente" de la base de datos
+if os.environ.get('RENDER'):
+    # En producción (Render), usamos el disco persistente
+    DATABASE = '/data/agenda.db'
+else:
+    # En desarrollo (local), usamos un archivo en la misma carpeta
+    DATABASE = 'agenda.db'
 
 def migrar_base_de_datos():
     """
