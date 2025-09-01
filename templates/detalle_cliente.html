@@ -23,6 +23,7 @@
                     <a href="/cliente/{{ clienta.id }}/editar" class="boton-accion">Editar</a>
                 </div>
                 <p><strong>Teléfono:</strong> {{ clienta.telefono or 'No especificado' }}</p>
+                <p><strong>Email:</strong> {{ clienta.email or 'No especificado' }}</p>
                 <p><strong>Cumpleaños:</strong> {{ clienta.cumpleanos or 'No especificado' }}</p>
 
                 <hr>
@@ -82,6 +83,13 @@
                                 </form>
                             </div>
                         </div>
+
+                        <div class="turno-notas-container">
+                            <label for="nota-{{ turno.id }}">Notas del servicio:</label>
+                            <textarea id="nota-{{ turno.id }}" class="form-control" rows="3" placeholder="Anotá detalles importantes del servicio, como productos usados, colores, etc.">{{ turno.notas or '' }}</textarea>
+                            <button class="boton-accion btn-guardar-nota" data-turno-id="{{ turno.id }}">Guardar Nota</button>
+                            <span id="feedback-nota-{{ turno.id }}" class="feedback-guardado"></span>
+                        </div>
                     </div>
                 {% endfor %}
             {% else %}
@@ -129,6 +137,53 @@ document.addEventListener('DOMContentLoaded', function() {
         if (event.target === modal) {
             cerrarModal();
         }
+    });
+
+    // --- LÓGICA PARA GUARDAR NOTAS CON AJAX ---
+    document.querySelectorAll('.btn-guardar-nota').forEach(button => {
+        button.addEventListener('click', function() {
+            const turnoId = this.dataset.turnoId;
+            const textarea = document.getElementById(`nota-${turnoId}`);
+            const notaTexto = textarea.value;
+            const feedbackSpan = document.getElementById(`feedback-nota-${turnoId}`);
+
+            this.disabled = true;
+            this.textContent = 'Guardando...';
+
+            fetch('/guardar_nota_turno', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    turno_id: turnoId, 
+                    nota: notaTexto 
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    feedbackSpan.textContent = '¡Guardado!';
+                    feedbackSpan.style.color = 'var(--color-verde-exito)';
+                } else {
+                    feedbackSpan.textContent = `Error: ${data.message}`;
+                    feedbackSpan.style.color = 'var(--color-rojo-peligro)';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                feedbackSpan.textContent = 'Error de conexión.';
+                feedbackSpan.style.color = 'var(--color-rojo-peligro)';
+            })
+            .finally(() => {
+                this.disabled = false;
+                this.textContent = 'Guardar Nota';
+                // Ocultar el mensaje de feedback después de unos segundos
+                setTimeout(() => {
+                    feedbackSpan.textContent = '';
+                }, 3000);
+            });
+        });
     });
 });
 </script>

@@ -1,3 +1,6 @@
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 import sqlite3
 import calendar
 import os
@@ -5,13 +8,13 @@ import time
 import urllib.parse
 import base64, io
 from PIL import Image, ImageOps
-from flask import Flask, render_template, request, redirect, flash, session, jsonify, get_flashed_messages, send_from_directory, url_for, url_for
+from flask import Flask, render_template, request, redirect, flash, session, jsonify, get_flashed_messages, send_from_directory, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from functools import wraps
 from collections import Counter
 from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash, check_password_hash
+from cryptography.fernet import Fernet, InvalidToken
 
 MENSAJES_FIJOS = {
     'recordatorio': "¡Hola {{nombre_cliente}}! Te recuerdo tu turno para {{servicio_nombre}} mañana a las {{hora_turno}}. ¡Te espero!",
@@ -21,7 +24,32 @@ MENSAJES_FIJOS = {
 }
 app = Flask(__name__)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.secret_key = 'mi_clave_secreta_super_dificil_v2'
+app.secret_key = 'mi_clave_secreta_super_dificil_v2' # TODO: Consider moving this to an environment variable as well.
+
+# --- ENCRYPTION SETUP ---
+# Load the secret key from environment variables
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    raise ValueError("No SECRET_KEY set for Flask application. Did you set the environment variable?")
+fernet = Fernet(SECRET_KEY.encode())
+
+def encrypt_password(password: str) -> str:
+    """Encrypts a password using the app's secret key."""
+    if not password:
+        return ""
+    return fernet.encrypt(password.encode()).decode()
+
+def decrypt_password(encrypted_password: str) -> str | None:
+    """Decrypts a password using the app's secret key."""
+    if not encrypted_password:
+        return None
+    try:
+        return fernet.decrypt(encrypted_password.encode()).decode()
+    except InvalidToken:
+        # This can happen if the key is wrong or the data is corrupt
+        app.logger.error("Failed to decrypt password. InvalidToken.")
+        return None
+# --- END ENCRYPTION SETUP ---
 
 @app.context_processor
 def inject_now():
@@ -86,17 +114,105 @@ def configuracion_publica():
     usuario = cursor.fetchone()
     conn.close()
 
-    # Primero, nos aseguramos de que el usuario exista en la base de datos
     if usuario:
         url_actual = usuario['url_salon'] if usuario['url_salon'] else ""
         nombre_publico_actual = usuario['nombre_publico'] if usuario['nombre_publico'] else usuario['nombre_salon']
     else:
-        # Si el usuario de la sesión no se encuentra, es una sesión "fantasma".
-        # Lo mejor es limpiar la sesión y forzar un nuevo login.
         flash("Hubo un error al cargar tus datos, por favor iniciá sesión de nuevo.", "error")
         return redirect('/logout')
 
     return render_template('configuracion_publica.html', url_actual=url_actual, nombre_publico_actual=nombre_publico_actual)
+
+@app.route('/configuracion/email', methods=['GET', 'POST'])
+def configuracion_email():
+    if 'usuario_id' not in session:
+        return redirect('/login')
+
+    usuario_id_actual = session['usuario_id']
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+        smtp_server = request.form.get('smtp_server')
+        smtp_port = request.form.get('smtp_port', type=int)
+        smtp_usuario = request.form.get('smtp_usuario')
+        smtp_password = request.form.get('smtp_password')
+
+        # Fetch existing config to check if we need to keep the old password
+        cursor.execute("SELECT smtp_password_hash FROM configuracion_email WHERE usuario_id = ?", (usuario_id_actual,))
+        existing_config = cursor.fetchone()
+
+        if not all([smtp_server, smtp_port, smtp_usuario]):
+            flash("Los campos de servidor, puerto y usuario son obligatorios.", "error")
+            return redirect(url_for('configuracion_email'))
+
+        encrypted_password = None
+        if smtp_password:
+            # User entered a new password, encrypt it
+            encrypted_password = encrypt_password(smtp_password)
+        elif existing_config:
+            # User did not enter a new password, keep the old one
+            encrypted_password = existing_config['smtp_password_hash']
+        else:
+            # This is the first time setup and the password is required
+            flash("La contraseña es obligatoria para la configuración inicial.", "error")
+            conn.close()
+            return redirect(url_for('configuracion_email'))
+
+        try:
+            cursor.execute("""
+                REPLACE INTO configuracion_email (usuario_id, smtp_server, smtp_port, smtp_usuario, smtp_password_hash)
+                VALUES (?, ?, ?, ?, ?)
+            """, (usuario_id_actual, smtp_server, smtp_port, smtp_usuario, encrypted_password))
+            conn.commit()
+            flash("¡Configuración de email guardada con éxito!", "success")
+        except Exception as e:
+            flash(f"Error al guardar la configuración: {e}", "error")
+        finally:
+            conn.close()
+        return redirect(url_for('configuracion_email'))
+
+    # GET request: Fetch existing configuration
+    cursor.execute("SELECT * FROM configuracion_email WHERE usuario_id = ?", (usuario_id_actual,))
+    config = cursor.fetchone()
+    conn.close()
+    # IMPORTANT: The template should never display the password. It should only be a field to enter a new one.
+    return render_template('configuracion_email.html', config=config)
+
+@app.route('/probar-email', methods=['POST'])
+def probar_email():
+    if 'usuario_id' not in session:
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+
+    data = request.get_json()
+    smtp_server = data.get('smtp_server')
+    smtp_port = data.get('smtp_port')
+    smtp_usuario = data.get('smtp_usuario')
+    smtp_password = data.get('smtp_password')
+
+    if not all([smtp_server, smtp_port, smtp_usuario, smtp_password]):
+        return jsonify({'success': False, 'message': 'Todos los campos son requeridos para la prueba.'})
+
+    try:
+        server = smtplib.SMTP(smtp_server, int(smtp_port), timeout=10)
+        server.starttls()
+        server.login(smtp_usuario, smtp_password)
+        server.quit()
+        return jsonify({'success': True, 'message': '¡Conexión exitosa!'})
+    except smtplib.SMTPAuthenticationError:
+        return jsonify({'success': False, 'message': 'Error de autenticación. Revisa tu email y contraseña.'})
+    except smtplib.SMTPServerDisconnected:
+        return jsonify({'success': False, 'message': 'El servidor se desconectó. ¿El puerto es correcto?'})
+    except ConnectionRefusedError:
+        return jsonify({'success': False, 'message': 'Conexión rechazada. ¿El puerto es correcto?'})
+    except smtplib.SMTPConnectError:
+        return jsonify({'success': False, 'message': 'No se pudo conectar. ¿El nombre del servidor es correcto?'})
+    except Exception as e:
+        # Captura cualquier otro error (DNS, timeout, etc.)
+        app.logger.error(f"Error en prueba de conexión SMTP: {e}")
+        return jsonify({'success': False, 'message': f'Ocurrió un error: {e}'})
+
 # --- RUTAS PRINCIPALES Y DE AUTENTICACIÓN ---
 @app.route('/')
 def landing():
@@ -166,9 +282,6 @@ def logout():
     return redirect('/')
 
 # --- PANEL DE CONTROL DE USUARIO (COMPLETO Y CORRECTO) ---
-# Asegúrate de que urllib.parse esté importado al principio de tu app.py
-import urllib.parse
-
 @app.route('/panel', methods=['GET', 'POST'])
 def panel_control():
     if 'usuario_id' not in session: return redirect('/login')
@@ -421,7 +534,6 @@ def ver_clientes():
     if 'usuario_id' not in session: return redirect('/login')
     usuario_id_actual = session['usuario_id']
     
-    # Obtenemos el término de búsqueda de la URL (?q=...)
     query = request.args.get('q', '')
     
     conn = sqlite3.connect(DATABASE)
@@ -429,27 +541,26 @@ def ver_clientes():
     cursor = conn.cursor()
 
     if query:
-        # Si hay búsqueda, modificamos la consulta
         search_term = f"%{query}%"
         cursor.execute("SELECT * FROM clientes WHERE usuario_id = ? AND (nombre LIKE ? OR apellido LIKE ?) ORDER BY apellido, nombre", 
                        (usuario_id_actual, search_term, search_term))
     else:
-        # Si no, traemos todos los clientes como antes
         cursor.execute("SELECT * FROM clientes WHERE usuario_id = ? ORDER BY apellido, nombre", (usuario_id_actual,))
     
     clientes_del_usuario = cursor.fetchall()
     conn.close()
     
-    # Pasamos la "query" a la plantilla para que el buscador no se borre
     return render_template('clientes.html', clientes=clientes_del_usuario, query=query)
 
 @app.route('/agregar_cliente', methods=['POST'])
 def agregar_cliente():
     if 'usuario_id' not in session: return redirect('/login')
     usuario_id_actual = session['usuario_id']
+    email = request.form.get('email')
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO clientes (usuario_id, nombre, apellido, telefono, cumpleanos) VALUES (?, ?, ?, ?, ?)", (usuario_id_actual, request.form['nombre'], request.form['apellido'], request.form['telefono'], request.form['cumpleanos']))
+    cursor.execute("INSERT INTO clientes (usuario_id, nombre, apellido, telefono, cumpleanos, email) VALUES (?, ?, ?, ?, ?, ?)", 
+                   (usuario_id_actual, request.form['nombre'], request.form['apellido'], request.form['telefono'], request.form['cumpleanos'], email))
     conn.commit()
     conn.close()
     return redirect('/clientes')
@@ -480,15 +591,16 @@ def editar_cliente(cliente_id):
     cursor = conn.cursor()
 
     if request.method == 'POST':
-        nombre = request.form['nombre']
-        apellido = request.form['apellido']
-        telefono = request.form['telefono']
-        cumpleanos = request.form['cumpleanos']
+        nombre = request.form.get('nombre')
+        apellido = request.form.get('apellido')
+        telefono = request.form.get('telefono')
+        cumpleanos = request.form.get('cumpleanos')
+        email = request.form.get('email')
 
         cursor.execute("""UPDATE clientes 
-                          SET nombre = ?, apellido = ?, telefono = ?, cumpleanos = ?
+                          SET nombre = ?, apellido = ?, telefono = ?, cumpleanos = ?, email = ?
                           WHERE id = ? AND usuario_id = ?""",
-                       (nombre, apellido, telefono, cumpleanos, cliente_id, usuario_id_actual))
+                       (nombre, apellido, telefono, cumpleanos, email, cliente_id, usuario_id_actual))
         conn.commit()
         conn.close()
         flash('¡Cliente actualizado con éxito!', 'success')
@@ -510,18 +622,15 @@ def eliminar_cliente(cliente_id):
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    # Opcional: borrar el avatar antes de borrar el cliente
     cursor.execute("SELECT avatar_path FROM clientes WHERE id = ? AND usuario_id = ?", (cliente_id, usuario_id_actual))
     cliente = cursor.fetchone()
     if cliente and cliente['avatar_path']:
         try:
             os.remove(os.path.join(app.config['UPLOAD_FOLDER'], cliente['avatar_path']))
         except (OSError, TypeError):
-            pass # Si el archivo no existe, no hacemos nada
+            pass
 
-    # Borrar turnos asociados
     cursor.execute("DELETE FROM turnos WHERE cliente_id = ? AND usuario_id = ?", (cliente_id, usuario_id_actual))
-    # Borrar cliente
     cursor.execute("DELETE FROM clientes WHERE id = ? AND usuario_id = ?", (cliente_id, usuario_id_actual))
     conn.commit()
     conn.close()
@@ -532,12 +641,10 @@ def eliminar_cliente(cliente_id):
 def subir_foto():
     if 'usuario_id' not in session: return redirect('/login')
     
-    # Usamos .get() para evitar errores si los campos no vienen, y redirigimos con un mensaje claro.
     turno_id = request.form.get('turno_id')
     cliente_id = request.form.get('cliente_id')
     if not all([turno_id, cliente_id]):
         flash("Error: No se pudo identificar el turno o el cliente. Inténtalo de nuevo.", "error")
-        # Redirigir a una página genérica si no tenemos cliente_id
         return redirect('/clientes')
 
     foto = request.files.get('foto_turno')
@@ -548,13 +655,8 @@ def subir_foto():
         ruta_guardado = os.path.join(app.config['UPLOAD_FOLDER'], nombre_unico)
 
         try:
-            imagen = Image.open(foto.stream) # Usamos foto.stream para procesar la imagen
+            imagen = Image.open(foto.stream)
             imagen = ImageOps.exif_transpose(imagen)
-            
-            # Opcional: Redimensionar si es muy grande
-            # if imagen.width > 1080:
-            #     imagen.thumbnail((1080, 1080))
-
             imagen.save(ruta_guardado, optimize=True, quality=85)
         except Exception as e:
             flash(f"Hubo un error al procesar la imagen: {e}", "error")
@@ -575,11 +677,10 @@ def subir_foto():
 def subir_avatar():
     if 'usuario_id' not in session: return redirect('/login')
     
-    # Usamos .get() para evitar errores si el campo no viene, y redirigimos con un mensaje claro.
     cliente_id = request.form.get('cliente_id')
     if not cliente_id:
         flash("Error: No se pudo identificar el cliente. Inténtalo de nuevo.", "error")
-        return redirect('/clientes') # Redirigir a la lista de clientes si no hay cliente_id
+        return redirect('/clientes')
 
     avatar = request.files.get('avatar')
 
@@ -589,12 +690,9 @@ def subir_avatar():
         ruta_guardado = os.path.join(app.config['UPLOAD_FOLDER'], nombre_unico)
 
         try:
-            imagen = Image.open(avatar.stream) # Usamos avatar.stream para procesar la imagen
+            imagen = Image.open(avatar.stream)
             imagen = ImageOps.exif_transpose(imagen)
-            # Reducimos la imagen a un tamaño máximo de 400x400 píxeles, manteniendo la proporción
             imagen.thumbnail((400, 400))
-
-            # Guardamos la imagen optimizada
             imagen.save(ruta_guardado, optimize=True, quality=85)
         except Exception as e:
             flash(f"Hubo un error al procesar la imagen: {e}", "error")
@@ -613,7 +711,6 @@ def subir_avatar():
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    # Asegúrate de que el filename sea seguro para prevenir ataques de recorrido de directorio
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/servicios', methods=['GET', 'POST'])
@@ -663,7 +760,6 @@ def gestionar_horarios():
             hora_inicio = request.form.get('inicio_'+str(i))
             hora_fin = request.form.get('fin_'+str(i))
             
-            # El comando 'REPLACE' es como 'INSERT OR UPDATE'
             cursor.execute("""
                 REPLACE INTO horarios (usuario_id, dia_semana, trabaja, hora_inicio, hora_fin)
                 VALUES (?, ?, ?, ?, ?)
@@ -674,7 +770,6 @@ def gestionar_horarios():
         conn.close()
         return redirect('/horarios')
 
-    # Lógica GET para mostrar los horarios guardados
     cursor.execute("SELECT * FROM horarios WHERE usuario_id = ?", (usuario_id_actual,))
     horarios_guardados = {h['dia_semana']: h for h in cursor.fetchall()}
     conn.close()
@@ -684,11 +779,64 @@ def gestionar_horarios():
     return render_template('horarios.html', dias_semana=dias_semana, horarios=horarios_guardados)
 
 
+@app.route('/enviar_email', methods=['POST'])
+def enviar_email():
+    if 'usuario_id' not in session:
+        return jsonify({'status': 'error', 'message': 'No autorizado'}), 401
+
+    usuario_id_actual = session['usuario_id']
+    cliente_id = request.json.get('cliente_id')
+    mensaje_html = request.json.get('mensaje')
+    asunto = request.json.get('asunto', 'Notificación de tu Salón')
+
+    if not all([cliente_id, mensaje_html]):
+        return jsonify({'status': 'error', 'message': 'Faltan datos (cliente o mensaje).'}), 400
+
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT email FROM clientes WHERE id = ? AND usuario_id = ?", (cliente_id, usuario_id_actual))
+    cliente = cursor.fetchone()
+    if not cliente or not cliente['email']:
+        conn.close()
+        return jsonify({'status': 'error', 'message': 'El cliente no tiene un email registrado.'}), 404
+
+    cursor.execute("SELECT smtp_server, smtp_port, smtp_usuario, smtp_password_hash FROM configuracion_email WHERE usuario_id = ?", (usuario_id_actual,))
+    config = cursor.fetchone()
+    conn.close()
+
+    if not config or not config['smtp_password_hash']:
+        return jsonify({'status': 'error', 'message': 'No has configurado tus credenciales de email o falta la contraseña.'}), 400
+
+    # --- SECURE DECRYPTION ---
+    password = decrypt_password(config['smtp_password_hash'])
+    if not password:
+        return jsonify({'status': 'error', 'message': 'Error de seguridad: no se pudo desencriptar la contraseña. Verifica que tu SECRET_KEY sea correcta.'}), 500
+    # --- END SECURE DECRYPTION ---
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = asunto
+    msg['From'] = config['smtp_usuario']
+    msg['To'] = cliente['email']
+    msg.attach(MIMEText(mensaje_html, 'html'))
+
+    try:
+        server = smtplib.SMTP(config['smtp_server'], config['smtp_port'])
+        server.starttls()
+        server.login(config['smtp_usuario'], password)
+        server.sendmail(config['smtp_usuario'], cliente['email'], msg.as_string())
+        server.quit()
+        return jsonify({'status': 'success', 'message': f'Email enviado a {cliente["email"]}'})
+    except Exception as e:
+        app.logger.error(f"Error al enviar email: {e}")
+        return jsonify({'status': 'error', 'message': f'Error al conectar con el servidor de email. Revisa la configuración y la contraseña.'}), 500
+
+
 @app.route('/calendario/<int:ano>/<int:mes>')
 def ver_calendario(ano, mes):
     if 'usuario_id' not in session: return redirect('/login')
     
-    # Recuperamos los datos del formulario si existen y los convertimos a un formato limpio
     datos_viejos = session.pop('form_data', None)
     
     usuario_id_actual = session['usuario_id']
@@ -765,31 +913,35 @@ def ver_detalle_dia(ano, mes, dia):
     return render_template('detalle_dia.html', 
                            turnos=turnos_del_dia,
                            fecha=fecha_seleccionada)
-@app.route('/turno/borrar', methods=['POST'])
-def borrar_turno():
-    if 'usuario_id' not in session: return redirect('/login')
+@app.route('/guardar_nota_turno', methods=['POST'])
+def guardar_nota_turno():
+    if 'usuario_id' not in session:
+        return jsonify({'status': 'error', 'message': 'No autorizado'}), 401
 
-    turno_id = request.form['turno_id']
-    fecha_turno = request.form['fecha_turno']
     usuario_id_actual = session['usuario_id']
+    data = request.get_json()
+    turno_id = data.get('turno_id')
+    nota = data.get('nota')
+
+    if turno_id is None:
+        return jsonify({'status': 'error', 'message': 'Falta el ID del turno.'}), 400
 
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM turnos WHERE id = ? AND usuario_id = ?", (turno_id, usuario_id_actual))
+    cursor.execute("UPDATE turnos SET notas = ? WHERE id = ? AND usuario_id = ?", (nota, turno_id, usuario_id_actual))
     conn.commit()
-    conn.close()
-
-    flash("Turno cancelado con éxito.", "success")
     
-    fecha_dt = datetime.strptime(fecha_turno, '%Y-%m-%d')
-    cache_buster = int(time.time())
-    return redirect(f'/calendario/{fecha_dt.year}/{fecha_dt.month}?v={cache_buster}')
+    if cursor.rowcount == 0:
+        conn.close()
+        return jsonify({'status': 'error', 'message': 'Turno no encontrado o no tienes permiso para editarlo.'}), 404
+    
+    conn.close()
+    return jsonify({'status': 'success', 'message': '¡Nota guardada!'})
 @app.route('/agregar_turno', methods=['POST'])
 def agregar_turno():
     if 'usuario_id' not in session:
         return jsonify({'status': 'error', 'message': 'No has iniciado sesión.'})
 
-    # --- Recolección y validación de datos del formulario ---
     usuario_id_actual = session['usuario_id']
     fecha_str = request.form.get('fecha')
     hora_str = request.form.get('hora')
@@ -802,12 +954,10 @@ def agregar_turno():
     if not all([fecha_str, hora_str, cliente_id, servicio_id]):
         return jsonify({'status': 'error', 'message': 'Todos los campos son obligatorios.'})
 
-    # --- Conexión a la base de datos ---
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    # --- Validación de Horario Laboral ---
     try:
         fecha_dt = datetime.strptime(fecha_str, '%Y-%m-%d')
         dia_semana = fecha_dt.weekday()
@@ -825,14 +975,13 @@ def agregar_turno():
         conn.close()
         return jsonify({'status': 'error', 'message': 'La fecha o la hora tienen un formato inválido.'})
 
-    # --- Validación de Superposición de Turnos ---
     servicio_seleccionado = cursor.execute("SELECT nombre, duracion FROM servicios WHERE id = ? AND usuario_id = ?", (servicio_id, usuario_id_actual)).fetchone()
     if not servicio_seleccionado:
         conn.close()
         return jsonify({'status': 'error', 'message': 'El servicio seleccionado no es válido.'})
 
     duracion_servicio = servicio_seleccionado['duracion']
-    TOLERANCIA_MINUTOS = 10 # Asegurate de tener esta variable definida
+    TOLERANCIA_MINUTOS = 10
     inicio_nuevo_turno = datetime.strptime(f"{fecha_str} {hora_str}", '%Y-%m-%d %H:%M')
     fin_nuevo_turno = inicio_nuevo_turno + timedelta(minutes=duracion_servicio + TOLERANCIA_MINUTOS)
 
@@ -844,7 +993,6 @@ def agregar_turno():
             conn.close()
             return jsonify({'status': 'error', 'message': f"Conflicto: el horario se superpone con el turno de las {turno_existente['hora']}."})
 
-    # --- Inserción en la Base de Datos si todo es correcto ---
     cursor.execute(
         "INSERT INTO turnos (usuario_id, cliente_id, servicio_id, servicio_nombre, fecha, hora) VALUES (?, ?, ?, ?, ?, ?)",
         (usuario_id_actual, cliente_id, servicio_id, servicio_seleccionado['nombre'], fecha_str, hora_str)
@@ -856,6 +1004,12 @@ def agregar_turno():
 @app.route('/estadisticas')
 def ver_estadisticas():
     if 'usuario_id' not in session: return redirect('/login')
+    return render_template('estadisticas.html')
+
+@app.route('/api/estadisticas')
+def api_estadisticas():
+    if 'usuario_id' not in session: return jsonify({'error': 'No autorizado'}), 401
+    
     usuario_id_actual = session['usuario_id']
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
@@ -863,11 +1017,33 @@ def ver_estadisticas():
     cursor.execute("SELECT fecha, servicio_nombre FROM turnos WHERE usuario_id = ?", (usuario_id_actual,))
     todos_los_turnos = cursor.fetchall()
     conn.close()
-    turnos_por_mes = Counter(turno['fecha'][:7] for turno in todos_los_turnos)
-    turnos_por_mes_ordenado = sorted(turnos_por_mes.items())
+
     contador_servicios = Counter(turno['servicio_nombre'] for turno in todos_los_turnos)
-    servicios_populares = contador_servicios.most_common()
-    return render_template('estadisticas.html', turnos_mes=turnos_por_mes_ordenado, servicios_pop=servicios_populares)
+    servicios_populares = contador_servicios.most_common(10)
+    labels_servicios = [item[0] for item in servicios_populares]
+    data_servicios = [item[1] for item in servicios_populares]
+
+    turnos_por_mes = Counter(turno['fecha'][:7] for turno in todos_los_turnos)
+    labels_meses = []
+    hoy = datetime.now()
+    for i in range(12, 0, -1):
+        fecha = hoy - timedelta(days=(i-1)*30)
+        labels_meses.append(fecha.strftime("%Y-%m"))
+    
+    labels_meses = sorted(list(set(labels_meses)))
+
+    data_meses = [turnos_por_mes.get(mes, 0) for mes in labels_meses]
+
+    return jsonify({
+        'popularidad_servicios': {
+            'labels': labels_servicios,
+            'data': data_servicios
+        },
+        'turnos_por_mes': {
+            'labels': labels_meses,
+            'data': data_meses
+        }
+    })
 
 
 @app.route('/mensajes', methods=['GET', 'POST'])
@@ -879,7 +1055,6 @@ def gestionar_mensajes():
     cursor = conn.cursor()
 
     if request.method == 'POST':
-        # Guardamos los 4 mensajes fijos
         for tipo in MENSAJES_FIJOS:
             nuevo_texto = request.form.get(f'fijo_{tipo}')
             if nuevo_texto is not None:
@@ -888,7 +1063,6 @@ def gestionar_mensajes():
                     (usuario_id_actual, tipo, nuevo_texto)
                 )
         
-        # Guardamos una nueva plantilla personalizada
         nombre_plantilla = request.form.get('nombre_plantilla')
         texto_plantilla = request.form.get('texto_plantilla')
         if nombre_plantilla and texto_plantilla:
@@ -905,7 +1079,6 @@ def gestionar_mensajes():
         flash("¡Mensajes guardados con éxito!", "success")
         return redirect('/mensajes')
 
-    # --- Lógica GET (mostrar todo) ---
     cursor.execute("SELECT id, tipo_mensaje, texto_mensaje FROM plantillas_mensajes WHERE usuario_id = ?", (usuario_id_actual,))
     plantillas_db = cursor.fetchall()
     conn.close()
@@ -913,14 +1086,12 @@ def gestionar_mensajes():
     mensajes_fijos_para_template = {}
     plantillas_personalizadas = []
 
-    # Separamos las plantillas fijas de las personalizadas
     for p in plantillas_db:
         if p['tipo_mensaje'] in MENSAJES_FIJOS:
             mensajes_fijos_para_template[p['tipo_mensaje']] = p['texto_mensaje']
         else:
             plantillas_personalizadas.append(p)
     
-    # Rellenamos los mensajes fijos con los textos por defecto si el usuario aún no los guardó
     for tipo, texto_default in MENSAJES_FIJOS.items():
         if tipo not in mensajes_fijos_para_template:
             mensajes_fijos_para_template[tipo] = texto_default
@@ -968,7 +1139,6 @@ def borrar_plantilla():
 
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
-    # Nos aseguramos de que el usuario solo pueda borrar sus propias plantillas
     cursor.execute("DELETE FROM plantillas_mensajes WHERE id = ? AND usuario_id = ?", (plantilla_id, usuario_id_actual))
     conn.commit()
     conn.close()
@@ -986,59 +1156,67 @@ def campanas():
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    # Buscamos todas las plantillas del usuario para el menú desplegable
     cursor.execute("SELECT id, tipo_mensaje FROM plantillas_mensajes WHERE usuario_id = ? ORDER BY tipo_mensaje", (usuario_id_actual,))
     plantillas = cursor.fetchall()
 
     if request.method == 'POST':
         plantilla_id = request.form.get('plantilla_id')
+        canal = request.form.get('canal', 'whatsapp')
+
         if plantilla_id:
-            cursor.execute("SELECT texto_mensaje FROM plantillas_mensajes WHERE id = ? AND usuario_id = ?", (plantilla_id, usuario_id_actual))
+            cursor.execute("SELECT texto_mensaje, tipo_mensaje FROM plantillas_mensajes WHERE id = ? AND usuario_id = ?", (plantilla_id, usuario_id_actual))
             plantilla_seleccionada = cursor.fetchone()
             
             if plantilla_seleccionada:
-                # Guardamos el texto de la plantilla en la sesión
                 session['ultima_plantilla_texto'] = plantilla_seleccionada['texto_mensaje']
+                session['ultima_campana_canal'] = canal
+                session['ultima_campana_asunto'] = plantilla_seleccionada['tipo_mensaje']
 
-                cursor.execute("SELECT id, nombre, apellido, telefono FROM clientes WHERE usuario_id = ? AND telefono IS NOT NULL AND telefono != ''", (usuario_id_actual,))
-                clientes = cursor.fetchall()
+                lista_clientes = []
+                if canal == 'whatsapp':
+                    cursor.execute("SELECT id, nombre, apellido, telefono FROM clientes WHERE usuario_id = ? AND telefono IS NOT NULL AND telefono != ''", (usuario_id_actual,))
+                    clientes = cursor.fetchall()
+                    for cliente in clientes:
+                        cliente_dict = dict(cliente)
+                        mensaje_personalizado = session['ultima_plantilla_texto'].replace("{{nombre_cliente}}", cliente['nombre'])
+                        mensaje_codificado = urllib.parse.quote_plus(mensaje_personalizado)
+                        telefono_limpio = ''.join(filter(str.isdigit, cliente['telefono']))
+                        if len(telefono_limpio) >= 10:
+                            telefono_limpio = "549" + telefono_limpio
+                        cliente_dict['link_wa'] = f"https://wa.me/{telefono_limpio}?text={mensaje_codificado}"
+                        lista_clientes.append(cliente_dict)
                 
-                clientes_con_wa = []
-                for cliente in clientes:
-                    cliente_dict = dict(cliente)
-                    mensaje_personalizado = session['ultima_plantilla_texto'].replace("{{nombre_cliente}}", cliente['nombre'])
-                    mensaje_codificado = urllib.parse.quote_plus(mensaje_personalizado)
-                    
-                    telefono_limpio = ''.join(filter(str.isdigit, cliente['telefono']))
-                    if len(telefono_limpio) >= 10:
-                        telefono_limpio = "549" + telefono_limpio
-                    
-                    cliente_dict['link_wa'] = f"https://wa.me/{telefono_limpio}?text={mensaje_codificado}"
-                    clientes_con_wa.append(cliente_dict)
+                elif canal == 'email':
+                    cursor.execute("SELECT id, nombre, apellido, email FROM clientes WHERE usuario_id = ? AND email IS NOT NULL AND email != ''", (usuario_id_actual,))
+                    clientes = cursor.fetchall()
+                    for cliente in clientes:
+                        cliente_dict = dict(cliente)
+                        mensaje_personalizado = session['ultima_plantilla_texto'].replace("{{nombre_cliente}}", cliente['nombre'])
+                        cliente_dict['mensaje'] = mensaje_personalizado
+                        lista_clientes.append(cliente_dict)
 
-                # ¡LA CLAVE! Guardamos la lista generada en la sesión del navegador
-                session['ultima_campana'] = clientes_con_wa
-                
+                session['ultima_campana'] = lista_clientes
                 conn.close()
-                return redirect('/campanas') # Redirigimos para limpiar el POST
+                return redirect('/campanas')
 
-    # Lógica para GET: recuperamos la campaña de la sesión si existe
-    clientes_con_wa = session.get('ultima_campana', [])
+    lista_clientes = session.get('ultima_campana', [])
     plantilla_seleccionada_texto = session.get('ultima_plantilla_texto', "")
+    canal_seleccionado = session.get('ultima_campana_canal', 'whatsapp')
+    asunto_seleccionado = session.get('ultima_campana_asunto', 'Notificación de tu Salón')
     conn.close()
 
     return render_template('campanas.html', 
                            plantillas=plantillas, 
-                           clientes_con_wa=clientes_con_wa,
-                           plantilla_seleccionada_texto=plantilla_seleccionada_texto)
+                           lista_clientes=lista_clientes,
+                           plantilla_seleccionada_texto=plantilla_seleccionada_texto,
+                           canal_seleccionado=canal_seleccionado,
+                           asunto_seleccionado=asunto_seleccionado)
 
 
 @app.route('/campanas/limpiar')
 def limpiar_campana():
-    # Borramos los datos de la campaña guardada en la sesión
     session.pop('ultima_campana', None)
     session.pop('ultima_plantilla_texto', None)
-    # Le indicamos al HTML que también limpie su memoria
     flash("limpiar_storage", "info") 
     return redirect('/campanas')
 
@@ -1066,7 +1244,6 @@ def calendario_publico(url_salon, ano=None, mes=None):
     nombres_meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
     nombre_mes_actual = nombres_meses[mes - 1]
 
-    # --- LÓGICA EXPERTA DE DISPONIBILIDAD ---
     cursor.execute("SELECT dia_semana, hora_inicio, hora_fin FROM horarios WHERE usuario_id = ? AND trabaja = 1", (usuario_id,))
     horarios_trabajo = {h['dia_semana']: h for h in cursor.fetchall()}
 
@@ -1089,44 +1266,40 @@ def calendario_publico(url_salon, ano=None, mes=None):
                 if horario_dia['hora_inicio'] and horario_dia['hora_fin']:
                     h_inicio_jornada = datetime.strptime(horario_dia['hora_inicio'], '%H:%M')
                     h_fin_jornada = datetime.strptime(horario_dia['hora_fin'], '%H:%M')
-                    total_minutos_trabajo = (h_fin_jornada - h_inicio_jornada).total_seconds() / 60
                     
-                    minutos_ocupados = 0
-                    horarios_ocupados_texto = []
-                    turnos_del_dia = [t for t in turnos_del_mes if t['fecha'] == fecha.strftime('%Y-%m-%d')]
+                    turnos_ocupados_dt = []
+                    turnos_del_dia_actual = [t for t in turnos_del_mes if t['fecha'] == fecha.strftime('%Y-%m-%d')]
+                    for turno in turnos_del_dia_actual:
+                        inicio = datetime.strptime(turno['hora'], '%H:%M')
+                        fin = inicio + timedelta(minutes=turno['duracion'])
+                        turnos_ocupados_dt.append((inicio, fin))
 
-                    for turno in turnos_del_dia:
-                        minutos_ocupados += turno['duracion']
-                        inicio_turno_dt = datetime.strptime(turno['hora'], '%H:%M')
-                        fin_turno_dt = inicio_turno_dt + timedelta(minutes=turno['duracion'])
-                        horarios_ocupados_texto.append(f"{inicio_turno_dt.strftime('%H:%M')} - {fin_turno_dt.strftime('%H:%M')}")
+                    horarios_disponibles = []
+                    slot_actual = h_inicio_jornada
+                    slot_duracion = timedelta(minutes=60)
 
-                    # CÁLCULO DE BLOQUES DISPONIBLES
-                    horarios_disponibles_texto = []
-                    cursor_tiempo = h_inicio_jornada
-                    
-                    for turno in turnos_del_dia:
-                        inicio_turno_dt = datetime.strptime(turno['hora'], '%H:%M')
-                        if cursor_tiempo < inicio_turno_dt:
-                            horarios_disponibles_texto.append(f"{cursor_tiempo.strftime('%H:%M')} - {inicio_turno_dt.strftime('%H:%M')}")
+                    while slot_actual + slot_duracion <= h_fin_jornada:
+                        slot_fin = slot_actual + slot_duracion
+                        esta_ocupado = False
+                        for turno_inicio, turno_fin in turnos_ocupados_dt:
+                            if max(slot_actual, turno_inicio) < min(slot_fin, turno_fin):
+                                esta_ocupado = True
+                                break
                         
-                        fin_turno_dt = inicio_turno_dt + timedelta(minutes=turno['duracion'])
-                        cursor_tiempo = max(cursor_tiempo, fin_turno_dt)
-                    
-                    if cursor_tiempo < h_fin_jornada:
-                        horarios_disponibles_texto.append(f"{cursor_tiempo.strftime('%H:%M')} - {h_fin_jornada.strftime('%H:%M')}")
-
-                    if total_minutos_trabajo > 0:
-                        porcentaje_ocupado = (minutos_ocupados / total_minutos_trabajo) * 100
-                        estado = "disponible"
-                        if not horarios_disponibles_texto: estado = "sin-disponibilidad"
-                        elif porcentaje_ocupado >= 40: estado = "poca-disponibilidad"
+                        if not esta_ocupado:
+                            horarios_disponibles.append(slot_actual.strftime('%H:%M'))
                         
-                        info_dias[dia_num] = {
-                            "estado": estado,
-                            "horarios_ocupados": horarios_ocupados_texto,
-                            "horarios_disponibles": horarios_disponibles_texto
-                        }
+                        slot_actual += slot_duracion
+
+                    estado = "disponible"
+                    if not horarios_disponibles: estado = "sin-disponibilidad"
+                    elif len(turnos_del_dia_actual) > 3: estado = "poca-disponibilidad"
+
+                    info_dias[dia_num] = {
+                        "estado": estado,
+                        "horarios_disponibles": horarios_disponibles,
+                        "horarios_ocupados": [f"{t[0].strftime('%H:%M')} - {t[1].strftime('%H:%M')}" for t in turnos_ocupados_dt]
+                    }
         except (ValueError, TypeError):
             continue
 

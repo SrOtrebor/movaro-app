@@ -43,6 +43,7 @@
                                 <span><strong>{{ clienta.nombre }} {{ clienta.apellido }}</strong></span>
                                 <div class="grupo-botones-accion">
                                     <a href="https://wa.me/{{ clienta.telefono_wa }}?text={{ clienta.mensaje_wa }}" target="_blank" class="boton-accion boton-notificacion">Enviar Saludo</a>
+                                    <button class="boton-accion btn-enviar-email" data-cliente-id="{{ clienta.id }}" data-asunto="¡Feliz Cumpleaños!" data-mensaje="{{ clienta.mensaje_wa }}">Enviar Email</button>
                                     <button class="boton-accion boton-eliminar-notificacion" style="display: none;">&times;</button>
                                 </div>
                             </li>
@@ -60,6 +61,7 @@
                                 <span><strong>{{ turno.cliente_nombre }}</strong> ({{ turno.servicio_nombre }})</span>
                                 <div class="grupo-botones-accion">
                                     <a href="https://wa.me/{{ turno.cliente_telefono_wa }}?text={{ turno.mensaje_wa }}" target="_blank" class="boton-accion boton-notificacion">Enviar Recordatorio</a>
+                                    <button class="boton-accion btn-enviar-email" data-cliente-id="{{ turno.cliente_id }}" data-asunto="Recordatorio de Turno" data-mensaje="{{ turno.mensaje_wa }}">Enviar Email</button>
                                     <button class="boton-accion boton-eliminar-notificacion" style="display: none;">&times;</button>
                                 </div>
                             </li>
@@ -77,6 +79,7 @@
                                 <span><strong>{{ clienta.nombre }} {{ clienta.apellido }}</strong> ({{ clienta.total_turnos }} turnos).</span>
                                 <div class="grupo-botones-accion">
                                     <a href="https://wa.me/{{ clienta.telefono_wa }}?text={{ clienta.mensaje_wa }}" target="_blank" class="boton-accion boton-notificacion">Avisar</a>
+                                    <button class="boton-accion btn-enviar-email" data-cliente-id="{{ clienta.id }}" data-asunto="¡Ganaste un premio!" data-mensaje="{{ clienta.mensaje_wa }}">Enviar Email</button>
                                     <form action="/premiar_cliente" method="post" class="form-premiar">
                                         <input type="hidden" name="cliente_id" value="{{ clienta.id }}">
                                         <button type="submit" class="boton-accion">Premiado</button>
@@ -98,6 +101,7 @@
                                 <span><strong>{{ clienta.nombre }} {{ clienta.apellido }}</strong></span>
                                 <div class="grupo-botones-accion">
                                     <a href="https://wa.me/{{ clienta.telefono_wa }}?text={{ clienta.mensaje_wa }}" target="_blank" class="boton-accion boton-notificacion">Contactar</a>
+                                    <button class="boton-accion btn-enviar-email" data-cliente-id="{{ clienta.id }}" data-asunto="¡Te extrañamos!" data-mensaje="{{ clienta.mensaje_wa }}">Enviar Email</button>
                                     <button class="boton-accion boton-eliminar-notificacion" style="display: none;">&times;</button>
                                 </div>
                             </li>

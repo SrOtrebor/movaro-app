@@ -11,7 +11,7 @@
     <hr>
 
     <div class="card" style="margin-bottom: 30px;">
-        <h2>Paso 1: Elegir Plantilla</h2>
+        <h2>Paso 1: Elegir Plantilla y Canal</h2>
         <form action="/campanas" method="post" style="display: flex; gap: 15px; align-items: flex-end;">
             <div class="form-group" style="flex-grow: 1; margin-bottom: 0;">
                 <label for="plantilla_id">Seleccioná la plantilla que querés enviar:</label>
@@ -21,6 +21,13 @@
                         <option value="{{ plantilla.id }}">{{ plantilla.tipo_mensaje }}</option>
                     {% endfor %}
                 </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>Canal de Envío:</label>
+                <div class="radio-group">
+                    <input type="radio" id="canal_wa" name="canal" value="whatsapp" checked> <label for="canal_wa">WhatsApp</label>
+                    <input type="radio" id="canal_email" name="canal" value="email"> <label for="canal_email">Email</label>
+                </div>
             </div>
             <button type="submit">Generar Lista</button>
         </form>
@@ -102,7 +109,169 @@
         const dataContainer = document.getElementById('js-data-container');
         // Leemos la señal desde el atributo data-* del div
         // Python convierte True en el string 'True', por eso la comparación
-        const needsToClear = dataContainer.dataset.limpiarStorage === 'True';
+        {% extends "base.html" %}
+
+{% block title %}Campañas de Mensajes{% endblock %}
+
+{% block content %}
+    <div id="js-data-container" data-limpiar-storage="{{ 'true' if 'limpiar_storage' in get_flashed_messages() else 'false' }}" style="display: none;"></div>
+    <h1>Campañas de Mensajes Masivos</h1>
+    <p>
+        Seleccioná una plantilla y un canal para contactar a todos tus clientes.
+    </p>
+    <hr>
+
+    <div class="card" style="margin-bottom: 30px;">
+        <h2>Paso 1: Elegir Plantilla y Canal</h2>
+        <form action="/campanas" method="post" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
+            <div class="form-group" style="flex-grow: 1; margin-bottom: 0; min-width: 250px;">
+                <label for="plantilla_id">Seleccioná la plantilla que querés enviar:</label>
+                <select id="plantilla_id" name="plantilla_id" class="form-control" required>
+                    <option value="">-- Elegí una plantilla --</option>
+                    {% for plantilla in plantillas %}
+                        <option value="{{ plantilla.id }}">{{ plantilla.tipo_mensaje }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>Canal de Envío:</label>
+                <div class="radio-group">
+                    <input type="radio" id="canal_wa" name="canal" value="whatsapp" {% if canal_seleccionado == 'whatsapp' %}checked{% endif %}> <label for="canal_wa">WhatsApp</label>
+                    <input type="radio" id="canal_email" name="canal" value="email" {% if canal_seleccionado == 'email' %}checked{% endif %}> <label for="canal_email">Email</label>
+                </div>
+            </div>
+            <button type="submit">Generar Lista</button>
+        </form>
+    </div>
+
+    {% if lista_clientes %}
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>Paso 2: Enviar Mensajes por {{ canal_seleccionado|capitalize }}</h2>
+            <a href="/campanas/limpiar" class="boton-accion" style="background-color: #6c757d;">Limpiar y Empezar de Nuevo</a>
+        </div>
+        
+        <p>Se generó una lista para <strong>{{ lista_clientes|length }}</strong> cliente(s) usando la plantilla:</p>
+        <blockquote style="border-left: 3px solid var(--color-borde-suave); padding-left: 15px; font-style: italic;">
+            {{ plantilla_seleccionada_texto }}
+        </blockquote>
+        <hr>
+        <p>Hacé clic en cada botón para enviar el mensaje. Tu progreso se guardará automáticamente.</p>
+        
+        <table class="stats-table tabla-responsiva">
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if canal_seleccionado == 'whatsapp' %}
+                    {% for cliente in lista_clientes %}
+                    <tr>
+                        <td data-label="Cliente">{{ cliente.nombre }} {{ cliente.apellido }}</td>
+                        <td data-label="Acción">
+                            <a href="{{ cliente.link_wa }}" target="_blank" class="boton-accion boton-envio-campana" data-canal="whatsapp" data-cliente-id="{{ cliente.id }}">
+                                Enviar WhatsApp
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% elif canal_seleccionado == 'email' %}
+                    {% for cliente in lista_clientes %}
+                    <tr>
+                        <td data-label="Cliente">{{ cliente.nombre }} {{ cliente.apellido }} ({{ cliente.email }})</td>
+                        <td data-label="Acción">
+                            <button class="boton-accion boton-envio-campana" data-canal="email" data-cliente-id="{{ cliente.id }}" data-asunto="{{ asunto_seleccionado }}" data-mensaje="{{ cliente.mensaje }}">
+                                Enviar Email
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const canal = "{{ canal_seleccionado }}";
+    const CAMPAIGN_STORAGE_KEY = `sent_clients_${canal}`;
+
+    const marcarComoEnviado = (boton) => {
+        if (!boton) return;
+        boton.textContent = 'Enviado ✔️';
+        boton.style.backgroundColor = '#6c757d';
+        boton.style.opacity = '0.7';
+        boton.disabled = true;
+        boton.style.pointerEvents = 'none';
+    };
+
+    const sentClients = JSON.parse(localStorage.getItem(CAMPAIGN_STORAGE_KEY) || '[]');
+    document.querySelectorAll('.boton-envio-campana').forEach(boton => {
+        const clienteId = boton.dataset.clienteId;
+        if (sentClients.includes(clienteId)) {
+            marcarComoEnviado(boton);
+        }
+    });
+
+    document.querySelectorAll('.boton-envio-campana').forEach(boton => {
+        boton.addEventListener('click', function(e) {
+            const clienteId = this.dataset.clienteId;
+            let currentSent = JSON.parse(localStorage.getItem(CAMPAIGN_STORAGE_KEY) || '[]');
+            if (!currentSent.includes(clienteId)) {
+                currentSent.push(clienteId);
+            }
+            localStorage.setItem(CAMPAIGN_STORAGE_KEY, JSON.stringify(currentSent));
+
+            if (this.dataset.canal === 'email') {
+                e.preventDefault(); // Prevenir acción por defecto solo para emails
+                const asunto = this.dataset.asunto;
+                const mensaje = this.dataset.mensaje;
+                const botonOriginal = this;
+
+                botonOriginal.disabled = true;
+                botonOriginal.textContent = 'Enviando...';
+
+                fetch('/enviar_email', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ cliente_id: clienteId, asunto: asunto, mensaje: mensaje })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.status !== 'success') {
+                        alert(data.message); // Mostrar error si lo hay
+                        botonOriginal.disabled = false; // Reactivar si falla
+                        botonOriginal.textContent = 'Enviar Email';
+                    } else {
+                        marcarComoEnviado(botonOriginal);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error de conexión al enviar email.');
+                    botonOriginal.disabled = false;
+                    botonOriginal.textContent = 'Enviar Email';
+                });
+            } else {
+                 // Para WhatsApp, solo marcamos como enviado después de un clic
+                 setTimeout(() => marcarComoEnviado(this), 300);
+            }
+        });
+    });
+
+    const dataContainer = document.getElementById('js-data-container');
+    if (dataContainer.dataset.limpiarStorage === 'true') {
+        localStorage.removeItem('sent_clients_whatsapp');
+        localStorage.removeItem('sent_clients_email');
+        window.location.href = '/campanas';
+    }
+});
+</script>
+
+{% endblock %}
         
         if (needsToClear) {
             localStorage.removeItem(CAMPAIGN_STORAGE_KEY);

@@ -35,6 +35,7 @@
                     <div class="cliente-card-info">
                         <h3>{{ cliente.nombre }} {{ cliente.apellido }}</h3>
                         <p>{{ cliente.telefono or 'No especificado' }}</p>
+                        <p class="cliente-email">{{ cliente.email or '' }}</p>
                     </div>
                 </a>
                 <a href="/cliente/{{ cliente.id }}" class="boton-accion">Ver Detalle</a>
@@ -68,6 +69,10 @@
                 <div class="form-group">
                     <label for="telefono">Teléfono:</label>
                     <input type="tel" id="telefono" name="telefono" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" class="form-control">
                 </div>
                 <div class="form-group">
                     <label for="cumpleanos">Cumpleaños:</label>

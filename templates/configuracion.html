@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Configuración de Email{% endblock %}
+
+{% block content %}
+<h1>Configuración de Email</h1>
+<p>Ingresá los datos de tu cuenta de email para poder enviar notificaciones a tus clientes. Esta información se guarda de forma segura.</p>
+<p><strong>Importante:</strong> Para usar Gmail, es posible que necesites crear una "Contraseña de aplicación". <a href="https://support.google.com/accounts/answer/185833" target="_blank">Consultá la ayuda de Google.</a></p>
+<hr>
+
+<div class="card">
+    <form action="{{ url_for('configuracion_email') }}" method="post">
+        <table class="stats-table tabla-responsiva">
+            <tbody>
+                <tr>
+                    <td data-label="Servidor SMTP"><strong>Servidor SMTP</strong></td>
+                    <td><input type="text" name="smtp_server" value="{{ config.smtp_server if config else '' }}" class="form-control" placeholder="ej: smtp.gmail.com" required></td>
+                </tr>
+                <tr>
+                    <td data-label="Puerto"><strong>Puerto</strong></td>
+                    <td><input type="number" name="smtp_port" value="{{ config.smtp_port if config else '587' }}" class="form-control" placeholder="ej: 587" required></td>
+                </tr>
+                <tr>
+                    <td data-label="Usuario"><strong>Usuario (Email)</strong></td>
+                    <td><input type="email" name="smtp_usuario" value="{{ config.smtp_usuario if config else '' }}" class="form-control" placeholder="tu_email@ejemplo.com" required></td>
+                </tr>
+                <tr>
+                    <td data-label="Contraseña"><strong>Contraseña</strong></td>
+                    <td><input type="password" name="smtp_password" class="form-control" {% if not config %}required{% endif %}>
+                        {% if config %}<small class="form-text text-muted">Dejar en blanco para no cambiar la contraseña guardada.</small>{% endif %}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <br>
+        <button type="submit">Guardar Configuración</button>
+    </form>
+</div>
+{% endblock %}

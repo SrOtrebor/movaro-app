@@ -10,52 +10,134 @@
     <div class="layout-col-principal">
         <div class="card">
             <h2>Turnos por Mes</h2>
-            {% if turnos_mes %}
-                <table class="stats-table">
-                    <thead>
-                        <tr>
-                            <th>Mes</th>
-                            <th>Cantidad de Turnos</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for mes, cantidad in turnos_mes %}
-                            <tr>
-                                <td>{{ mes }}</td>
-                                <td>{{ cantidad }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p>No hay datos suficientes.</p>
-            {% endif %}
+            <div class="chart-container">
+                <canvas id="turnosPorMesChart"></canvas>
+            </div>
         </div>
     </div>
     <div class="layout-col-lateral">
         <div class="card">
             <h2>Popularidad de Servicios</h2>
-            {% if servicios_pop %}
-                <table class="stats-table">
-                    <thead>
-                        <tr>
-                            <th>Servicio</th>
-                            <th>Veces Realizado</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for servicio, cantidad in servicios_pop %}
-                            <tr>
-                                <td>{{ servicio }}</td>
-                                <td>{{ cantidad }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p>No hay datos suficientes.</p>
-            {% endif %}
+            <div class="chart-container">
+                <canvas id="popularidadServiciosChart"></canvas>
+            </div>
         </div>
     </div>
 </div>
+
+<style>
+    /* Contenedor para asegurar que el gráfico sea responsive */
+    .chart-container {
+        position: relative;
+        height: 300px; /* Altura inicial, puedes ajustarla */
+        width: 100%;
+    }
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Detectar si el modo oscuro está activado para los colores del texto
+    const isDarkMode = document.body.classList.contains('dark-mode');
+    const textColor = isDarkMode ? '#FFFFFF' : '#333333';
+
+    // Opciones comunes para que los gráficos se vean bien en ambos modos
+    Chart.defaults.color = textColor;
+    Chart.defaults.borderColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+
+    // --- Función para obtener datos de la API ---
+    async function fetchChartData() {
+        try {
+            const response = await fetch('/api/estadisticas');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error("Error al cargar los datos de estadísticas:", error);
+            return null; // Devuelve null si hay un error
+        }
+    }
+
+    // --- Función para inicializar los gráficos ---
+    async function initCharts() {
+        const data = await fetchChartData();
+        if (!data) {
+            // Opcional: Mostrar un mensaje de error en la UI si los datos no cargan
+            document.getElementById('turnosPorMesChart').parentElement.innerHTML = '<p>No se pudieron cargar los datos del gráfico.</p>';
+            document.getElementById('popularidadServiciosChart').parentElement.innerHTML = '<p>No se pudieron cargar los datos del gráfico.</p>';
+            return;
+        }
+
+        // 1. Gráfico de Barras: Turnos por Mes
+        const ctxTurnos = document.getElementById('turnosPorMesChart').getContext('2d');
+        if (data.turnos_por_mes.labels.length > 0) {
+            new Chart(ctxTurnos, {
+                type: 'bar',
+                data: {
+                    labels: data.turnos_por_mes.labels,
+                    datasets: [{
+                        label: 'Nº de Turnos',
+                        data: data.turnos_por_mes.data,
+                        backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 } // Asegura que el eje Y vaya de 1 en 1
+                        }
+                    }
+                }
+            });
+        } else {
+            document.getElementById('turnosPorMesChart').parentElement.innerHTML = '<p>No hay datos de turnos por mes para mostrar.</p>';
+        }
+
+        // 2. Gráfico de Torta: Popularidad de Servicios
+        const ctxServicios = document.getElementById('popularidadServiciosChart').getContext('2d');
+        if (data.popularidad_servicios.labels.length > 0) {
+            new Chart(ctxServicios, {
+                type: 'pie',
+                data: {
+                    labels: data.popularidad_servicios.labels,
+                    datasets: [{
+                        label: 'Popularidad',
+                        data: data.popularidad_servicios.data,
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.5)',
+                            'rgba(54, 162, 235, 0.5)',
+                            'rgba(255, 206, 86, 0.5)',
+                            'rgba(75, 192, 192, 0.5)',
+                            'rgba(153, 102, 255, 0.5)',
+                            'rgba(255, 159, 64, 0.5)',
+                            'rgba(199, 199, 199, 0.5)',
+                            'rgba(83, 102, 255, 0.5)',
+                            'rgba(40, 159, 64, 0.5)',
+                            'rgba(210, 99, 132, 0.5)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                }
+            });
+        } else {
+            document.getElementById('popularidadServiciosChart').parentElement.innerHTML = '<p>No hay datos de popularidad de servicios para mostrar.</p>';
+        }
+    }
+
+    // --- Iniciar todo ---
+    initCharts();
+});
+</script>
 {% endblock %}
