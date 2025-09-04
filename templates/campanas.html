@@ -23,13 +23,13 @@
                 </select>
             </div>
             <div class="form-group" style="margin-bottom: 0;">
-                <label>Canal de Envío:</label>
-                <div class="radio-group">
-                    <input type="radio" id="canal_wa" name="canal" value="whatsapp" {% if canal_seleccionado == 'whatsapp' %}checked{% endif %}> <label for="canal_wa">WhatsApp</label>
-                    <input type="radio" id="canal_email" name="canal" value="email" {% if canal_seleccionado == 'email' %}checked{% endif %}> <label for="canal_email">Email</label>
-                </div>
+                <label for="canal">Canal de Envío:</label>
+                <select id="canal" name="canal" class="form-control">
+                    <option value="whatsapp" {% if canal_seleccionado == 'whatsapp' %}selected{% endif %}>📱 WhatsApp</option>
+                    <option value="email" {% if canal_seleccionado == 'email' %}selected{% endif %}>📧 Email</option>
+                </select>
             </div>
-            <button type="submit">Generar Lista</button>
+            <button type="submit">Crear Campaña</button>
         </form>
     </div>
 
