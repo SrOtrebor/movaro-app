@@ -1217,6 +1217,8 @@ def campanas():
 def limpiar_campana():
     session.pop('ultima_campana', None)
     session.pop('ultima_plantilla_texto', None)
+    session.pop('ultima_campana_canal', None)
+    session.pop('ultima_campana_asunto', None)
     flash("limpiar_storage", "info") 
     return redirect('/campanas')
 
