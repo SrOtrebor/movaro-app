@@ -251,28 +251,90 @@ def login():
             return redirect('/login')
     return render_template('login.html')
 
+def enviar_notificacion_registro(nombre_salon, email_nuevo_usuario):
+    app.logger.info(f"Iniciando envío de notificación para el nuevo registro: {nombre_salon}")
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("SELECT id FROM usuarios WHERE email = ?", (ADMIN_EMAIL,))
+        admin_user = cursor.fetchone()
+        if not admin_user:
+            app.logger.error(f"No se encontró al usuario administrador ({ADMIN_EMAIL}) para enviar la notificación.")
+            return
+
+        cursor.execute("SELECT * FROM configuracion_email WHERE usuario_id = ?", (admin_user['id'],))
+        config = cursor.fetchone()
+        if not config or not config['smtp_password_hash']:
+            app.logger.error("El administrador no tiene un email configurado o falta la contraseña para enviar notificaciones.")
+            return
+
+        password = decrypt_password(config['smtp_password_hash'])
+        if not password:
+            app.logger.error("No se pudo desencriptar la contraseña del email del administrador.")
+            return
+
+        asunto = f"[Movaro] Nuevo Registro Pendiente: {nombre_salon}"
+        cuerpo_html = f"""            <h1>Nuevo Registro en Movaro</h1>
+            <p>Se ha registrado un nuevo profesional y su cuenta está pendiente de activación.</p>
+            <ul>
+                <li><strong>Nombre del Salón:</strong> {nombre_salon}</li>
+                <li><strong>Email de Contacto:</strong> {email_nuevo_usuario}</li>
+            </ul>
+            <p>Puedes activar su cuenta desde el panel de Superadmin:</p>
+            <a href=\"https://movaroapp.com/superadmin\">Activar Cuenta</a>
+            <p>Para contactar al profesional, simplemente responde a este correo.</p>
+        """
+
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = asunto
+        msg['From'] = config['smtp_usuario']
+        msg['To'] = "activaciones@movaroapp.com"
+        msg['Reply-To'] = email_nuevo_usuario
+        msg.attach(MIMEText(cuerpo_html, 'html'))
+
+        server = smtplib.SMTP(config['smtp_server'], config['smtp_port'])
+        server.starttls()
+        server.login(config['smtp_usuario'], password)
+        server.send_message(msg)
+        server.quit()
+        app.logger.info(f"Notificación de nuevo registro enviada para '{nombre_salon}' a activaciones@movaroapp.com")
+
+    except Exception as e:
+        app.logger.error(f"Error crítico al enviar notificación de registro: {e}")
+    finally:
+        conn.close()
+
 @app.route('/registro', methods=['GET', 'POST'])
 def registro():
     if request.method == 'POST':
         nombre_salon = request.form['nombre_salon']
         email = request.form['email']
         password = request.form['password']
+
         if len(password) < 8 or not any(c.isupper() for c in password) or not any(c.isdigit() for c in password):
             flash("La contraseña debe tener al menos 8 caracteres, una mayúscula y un número.", "error")
             return redirect('/registro')
+
         password_hash = generate_password_hash(password)
+        conn = sqlite3.connect(DATABASE)
+        cursor = conn.cursor()
+
         try:
-            conn = sqlite3.connect(DATABASE)
-            cursor = conn.cursor()
             cursor.execute("INSERT INTO usuarios (nombre_salon, email, password_hash) VALUES (?, ?, ?)", (nombre_salon, email, password_hash))
             conn.commit()
+            # --- ¡NUEVO! Enviar notificación por email ---
+            enviar_notificacion_registro(nombre_salon, email)
+            # --- Fin de la nueva lógica ---
+            flash("¡Registro exitoso! Tu cuenta será revisada por un administrador.", "success")
+            return redirect('/login')
         except sqlite3.IntegrityError:
             flash("El email ya está en uso.", "error")
             return redirect('/registro')
         finally:
             conn.close()
-        flash("¡Registro exitoso! Tu cuenta será revisada por un administrador.", "success")
-        return redirect('/login')
+            
     return render_template('registro.html')
 
 @app.route('/logout')
