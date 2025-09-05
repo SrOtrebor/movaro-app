@@ -72,7 +72,7 @@ TOLERANCIA_MINUTOS = 10
 DIAS_INACTIVIDAD = 30
 
 # --- CONFIGURACIÓN DE ADMIN ---
-ADMIN_EMAIL = "movaro.ad@gmail.com"
+ADMIN_EMAIL = "admin@movaroapp.com"
 
 # --- DECORADOR PARA PROTEGER RUTAS DE ADMIN ---
 def admin_required(f):
