@@ -256,24 +256,24 @@ def enviar_notificacion_registro(nombre_salon, email_nuevo_usuario):
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-
+    
     try:
         cursor.execute("SELECT id FROM usuarios WHERE email = ?", (ADMIN_EMAIL,))
         admin_user = cursor.fetchone()
         if not admin_user:
             app.logger.error(f"No se encontró al usuario administrador ({ADMIN_EMAIL}) para enviar la notificación.")
-            return
+            return False
 
         cursor.execute("SELECT * FROM configuracion_email WHERE usuario_id = ?", (admin_user['id'],))
         config = cursor.fetchone()
         if not config or not config['smtp_password_hash']:
             app.logger.error("El administrador no tiene un email configurado o falta la contraseña para enviar notificaciones.")
-            return
+            return False
 
         password = decrypt_password(config['smtp_password_hash'])
         if not password:
             app.logger.error("No se pudo desencriptar la contraseña del email del administrador.")
-            return
+            return False
 
         asunto = f"[Movaro] Nuevo Registro Pendiente: {nombre_salon}"
         cuerpo_html = f"""            <h1>Nuevo Registro en Movaro</h1>
@@ -283,7 +283,7 @@ def enviar_notificacion_registro(nombre_salon, email_nuevo_usuario):
                 <li><strong>Email de Contacto:</strong> {email_nuevo_usuario}</li>
             </ul>
             <p>Puedes activar su cuenta desde el panel de Superadmin:</p>
-            <a href=\"https://movaroapp.com/superadmin\">Activar Cuenta</a>
+            <a href="https://movaroapp.com/superadmin">Activar Cuenta</a>
             <p>Para contactar al profesional, simplemente responde a este correo.</p>
         """
 
@@ -300,9 +300,11 @@ def enviar_notificacion_registro(nombre_salon, email_nuevo_usuario):
         server.send_message(msg)
         server.quit()
         app.logger.info(f"Notificación de nuevo registro enviada para '{nombre_salon}' a activaciones@movaroapp.com")
+        return True
 
     except Exception as e:
         app.logger.error(f"Error crítico al enviar notificación de registro: {e}")
+        return False
     finally:
         conn.close()
 
@@ -324,11 +326,17 @@ def registro():
         try:
             cursor.execute("INSERT INTO usuarios (nombre_salon, email, password_hash) VALUES (?, ?, ?)", (nombre_salon, email, password_hash))
             conn.commit()
-            # --- ¡NUEVO! Enviar notificación por email ---
-            enviar_notificacion_registro(nombre_salon, email)
-            # --- Fin de la nueva lógica ---
-            flash("¡Registro exitoso! Ahora contactá al administrador por WhatsApp para activar tu cuenta y empezar.", "success")
+            
+            # --- Lógica de notificación mejorada ---
+            notificacion_exitosa = enviar_notificacion_registro(nombre_salon, email)
+            
+            if notificacion_exitosa:
+                flash("¡Registro exitoso! Se ha notificado al administrador para que active tu cuenta.", "success")
+            else:
+                flash("¡Registro exitoso! No pudimos notificar al administrador. Por favor, contactalo por WhatsApp para activar tu cuenta.", "warning")
+                
             return redirect('/login')
+            
         except sqlite3.IntegrityError:
             flash("El email ya está en uso.", "error")
             return redirect('/registro')
