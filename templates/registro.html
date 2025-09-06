@@ -24,7 +24,12 @@
             
             <button type="submit">Registrarme</button>
         </form>
-        <p style="text-align: center; margin-top: 20px;">¿Ya tenés cuenta? <a href="/login">Iniciá sesión</a></p>
+                <p>¿Ya tenés cuenta? <a href="{{ url_for('login') }}">Iniciá Sesión</a></p>
+        <hr>
+        <p>¿Necesitás ayuda? <a href="https://wa.me/5491112345678" class="btn-whatsapp" target="_blank">Contactar al Administrador</a></p>
+    </div>
+</div>
+{% endblock %}
     </div>
 </div>
 {% endblock %}

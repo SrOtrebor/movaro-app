@@ -340,6 +340,96 @@ body:not(.dark-mode) .navbar .hamburger {
 .public-modal-contenido li.horario-disponible { background-color: var(--cal-disponible-fondo); color: var(--cal-disponible-texto); }
 .public-modal-contenido li.horario-ocupado { background-color: var(--cal-sin-disponibilidad-fondo); color: var(--cal-sin-disponibilidad-texto); }
 
+.btn-whatsapp {
+    background-color: #25D366;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    display: inline-block;
+    text-align: center;
+}
+
+.btn-whatsapp:hover {
+    background-color: #1EBE57;
+}
+
+/* ======================================= */
+/* ESTILOS PARA SUPERADMIN                 */
+/* ======================================= */
+.superadmin-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.usuario-card {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+}
+
+.usuario-info {
+    flex-grow: 1;
+    min-width: 200px;
+}
+
+.usuario-info h3 {
+    margin: 0 0 5px 0;
+    font-size: 1.2em;
+}
+
+.usuario-info p {
+    margin: 0;
+    opacity: 0.8;
+}
+
+.usuario-estado {
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 0.9em;
+    white-space: nowrap;
+}
+
+.estado-activo { background-color: var(--cal-disponible-fondo); color: var(--cal-disponible-texto); }
+.estado-pendiente { background-color: var(--alerta-cumple-fondo); color: var(--alerta-cumple-texto); }
+.estado-suspendido { background-color: var(--alerta-inactivo-fondo); color: var(--alerta-inactivo-texto); }
+
+
+.usuario-vencimiento {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 280px;
+}
+
+.usuario-acciones {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.usuario-acciones .boton-accion {
+    font-size: 0.9em;
+    padding: 8px 12px;
+}
+
+@media (max-width: 768px) {
+    .usuario-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .usuario-vencimiento, .usuario-acciones {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+
 /* ======================================= */
 /* CORRECCIÓN PARA EL MINI-CALENDARIO DEL PANEL */
 /* ======================================= */

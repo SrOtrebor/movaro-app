@@ -16,65 +16,57 @@
     <hr>
 
     <h2>Listado de Usuarios</h2>
-    <table class="stats-table tabla-responsiva" width="100%">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Nombre del Salón</th>
-                <th>Email</th>
-                <th>Estado</th>
-                <th>Vencimiento</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for usuario in usuarios %}
-                <tr>
-                    <td data-label="ID">{{ usuario.id }}</td>
-                    <td data-label="Nombre del Salón">{{ usuario.nombre_salon }}</td>
-                    <td data-label="Email">{{ usuario.email }}</td>
-                    <td data-label="Estado">{{ usuario.estado }}</td>
-                    <td data-label="Vencimiento">
-                        <form action="/superadmin/set_vencimiento" method="post" style="display:inline-flex; gap: 5px; align-items: center;">
-                            <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
-                            <input type="date" name="fecha_vencimiento" value="{{ usuario.fecha_vencimiento or '' }}">
-                            <button type="submit">Guardar</button>
-                        </form>
-                    </td>
-                    <td data-label="Acciones" class="acciones-admin">
-                        {% if usuario.estado == 'pendiente' %}
-                            <form action="/superadmin/cambiar_estado" method="post" style="margin:0;">
-                                <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
-                                <input type="hidden" name="nuevo_estado" value="activo">
-                                <button type="submit" class="boton-accion boton-activar">Activar</button>
-                            </form>
-                        {% elif usuario.estado == 'activo' %}
-                            <form action="/superadmin/cambiar_estado" method="post" style="margin:0;">
-                                <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
-                                <input type="hidden" name="nuevo_estado" value="suspendido">
-                                <button type="submit" class="boton-accion boton-suspender">Suspender</button>
-                            </form>
-                        {% elif usuario.estado == 'suspendido' %}
-                             <form action="/superadmin/cambiar_estado" method="post" style="margin:0;">
-                                <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
-                                <input type="hidden" name="nuevo_estado" value="activo">
-                                <button type="submit" class="boton-accion boton-activar">Reactivar</button>
-                            </form>
-                        {% endif %}
-                        
-                        <a href="/superadmin/resetear/{{ usuario.id }}" class="boton-accion" style="background-color: #6c757d; border-radius: 5px; color: white; font-weight: bold;">Reset Pass</a>
+    <div class="superadmin-container">
+        {% for usuario in usuarios %}
+            <div class="card usuario-card">
+                <div class="usuario-info">
+                    <h3>{{ usuario.nombre_salon }}</h3>
+                    <p>{{ usuario.email }}</p>
+                </div>
 
-                        <form action="/superadmin/borrar_usuario" method="post" style="margin:0;" onsubmit="return confirm('¿ESTÁS SEGURO? Esta acción es irreversible y borrará al usuario y TODOS sus datos (clientes, turnos, fotos).');">
+                <div class="usuario-estado estado-{{ usuario.estado }}">
+                    {{ usuario.estado|capitalize }}
+                </div>
+
+                <div class="usuario-vencimiento">
+                    <form action="/superadmin/set_vencimiento" method="post" class="form-inline">
+                        <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
+                        <input type="date" name="fecha_vencimiento" value="{{ usuario.fecha_vencimiento or '' }}" class="form-control">
+                        <button type="submit" class="boton-accion">Guardar</button>
+                    </form>
+                </div>
+
+                <div class="usuario-acciones">
+                    {% if usuario.estado == 'pendiente' %}
+                        <form action="/superadmin/cambiar_estado" method="post">
                             <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
-                            <button type="submit" class="boton-accion boton-eliminar">Borrar</button>
+                            <input type="hidden" name="nuevo_estado" value="activo">
+                            <button type="submit" class="boton-accion">Activar</button>
                         </form>
-                    </td>
-                </tr>
-            {% else %}
-                <tr>
-                    <td colspan="6">No hay usuarios registrados.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                    {% elif usuario.estado == 'activo' %}
+                        <form action="/superadmin/cambiar_estado" method="post">
+                            <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
+                            <input type="hidden" name="nuevo_estado" value="suspendido">
+                            <button type="submit" class="boton-accion">Suspender</button>
+                        </form>
+                    {% elif usuario.estado == 'suspendido' %}
+                        <form action="/superadmin/cambiar_estado" method="post">
+                            <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
+                            <input type="hidden" name="nuevo_estado" value="activo">
+                            <button type="submit" class="boton-accion">Reactivar</button>
+                        </form>
+                    {% endif %}
+                    
+                    <a href="/superadmin/resetear/{{ usuario.id }}" class="boton-accion">Reset Pass</a>
+
+                    <form action="/superadmin/borrar_usuario" method="post" onsubmit="return confirm('¿ESTÁS SEGURO? Esta acción es irreversible y borrará al usuario y TODOS sus datos (clientes, turnos, fotos).');">
+                        <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
+                        <button type="submit" class="boton-accion">Borrar</button>
+                    </form>
+                </div>
+            </div>
+        {% else %}
+            <p>No hay usuarios registrados.</p>
+        {% endfor %}
+    </div>
 {% endblock %}

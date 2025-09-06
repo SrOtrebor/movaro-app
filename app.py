@@ -327,7 +327,7 @@ def registro():
             # --- ¡NUEVO! Enviar notificación por email ---
             enviar_notificacion_registro(nombre_salon, email)
             # --- Fin de la nueva lógica ---
-            flash("¡Registro exitoso! Tu cuenta será revisada por un administrador.", "success")
+            flash("¡Registro exitoso! Ahora contactá al administrador por WhatsApp para activar tu cuenta y empezar.", "success")
             return redirect('/login')
         except sqlite3.IntegrityError:
             flash("El email ya está en uso.", "error")
@@ -515,12 +515,28 @@ def cambiar_estado_usuario():
     if nuevo_estado not in ['activo', 'suspendido']:
         flash("Estado no válido.", "error")
         return redirect('/superadmin')
+
     conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    cursor.execute("UPDATE usuarios SET estado = ? WHERE id = ?", (nuevo_estado, usuario_id))
+
+    # Verificamos si el usuario ya tiene una fecha de vencimiento
+    cursor.execute("SELECT fecha_vencimiento FROM usuarios WHERE id = ?", (usuario_id,))
+    usuario = cursor.fetchone()
+
+    if nuevo_estado == 'activo' and not usuario['fecha_vencimiento']:
+        # Si se está activando y no tiene fecha, se le asignan 30 días
+        fecha_vencimiento = datetime.now().date() + timedelta(days=30)
+        cursor.execute("UPDATE usuarios SET estado = ?, fecha_vencimiento = ? WHERE id = ?", 
+                       (nuevo_estado, fecha_vencimiento.strftime('%Y-%m-%d'), usuario_id))
+        flash(f"Usuario activado con éxito. Su suscripción vence en 30 días.", "success")
+    else:
+        # Si no, solo se actualiza el estado
+        cursor.execute("UPDATE usuarios SET estado = ? WHERE id = ?", (nuevo_estado, usuario_id))
+        flash(f"Usuario actualizado al estado '{nuevo_estado}' con éxito.", "success")
+
     conn.commit()
     conn.close()
-    flash(f"Usuario actualizado al estado '{nuevo_estado}' con éxito.", "success")
     return redirect('/superadmin')
 
 @app.route('/superadmin/borrar_usuario', methods=['POST'])
