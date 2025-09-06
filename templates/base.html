@@ -73,7 +73,13 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alerta flash-{{ category }}">{{ message }}</div>
+                    <div class="alerta flash-{{ category }}">
+                        {{ message }}
+                        {% if 'WhatsApp' in message %}
+                            <br><br>
+                            <a href="https://wa.me/5491112345678" class="btn-whatsapp" target="_blank">Contactar por WhatsApp</a>
+                        {% endif %}
+                    </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}

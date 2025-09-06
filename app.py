@@ -256,24 +256,24 @@ def enviar_notificacion_registro(nombre_salon, email_nuevo_usuario):
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    
+
     try:
         cursor.execute("SELECT id FROM usuarios WHERE email = ?", (ADMIN_EMAIL,))
         admin_user = cursor.fetchone()
         if not admin_user:
             app.logger.error(f"No se encontró al usuario administrador ({ADMIN_EMAIL}) para enviar la notificación.")
-            return False
+            return
 
         cursor.execute("SELECT * FROM configuracion_email WHERE usuario_id = ?", (admin_user['id'],))
         config = cursor.fetchone()
         if not config or not config['smtp_password_hash']:
             app.logger.error("El administrador no tiene un email configurado o falta la contraseña para enviar notificaciones.")
-            return False
+            return
 
         password = decrypt_password(config['smtp_password_hash'])
         if not password:
             app.logger.error("No se pudo desencriptar la contraseña del email del administrador.")
-            return False
+            return
 
         asunto = f"[Movaro] Nuevo Registro Pendiente: {nombre_salon}"
         cuerpo_html = f"""            <h1>Nuevo Registro en Movaro</h1>
@@ -300,13 +300,12 @@ def enviar_notificacion_registro(nombre_salon, email_nuevo_usuario):
         server.send_message(msg)
         server.quit()
         app.logger.info(f"Notificación de nuevo registro enviada para '{nombre_salon}' a activaciones@movaroapp.com")
-        return True
 
     except Exception as e:
         app.logger.error(f"Error crítico al enviar notificación de registro: {e}")
-        return False
     finally:
         conn.close()
+
 
 @app.route('/registro', methods=['GET', 'POST'])
 def registro():
@@ -326,23 +325,13 @@ def registro():
         try:
             cursor.execute("INSERT INTO usuarios (nombre_salon, email, password_hash) VALUES (?, ?, ?)", (nombre_salon, email, password_hash))
             conn.commit()
-            
-            # --- Lógica de notificación mejorada ---
-            notificacion_exitosa = enviar_notificacion_registro(nombre_salon, email)
-            
-            if notificacion_exitosa:
-                flash("¡Registro exitoso! Se ha notificado al administrador para que active tu cuenta.", "success")
-            else:
-                flash("¡Registro exitoso! No pudimos notificar al administrador. Por favor, contactalo por WhatsApp para activar tu cuenta.", "warning")
-                
+            # --- ¡NUEVO! Enviar notificación por email ---
+            enviar_notificacion_registro(nombre_salon, email)
+            # --- Fin de la nueva lógica ---
+            flash("¡Registro exitoso! Ahora contactá al administrador por WhatsApp para activar tu cuenta y empezar.", "success")
             return redirect('/login')
-            
         except sqlite3.IntegrityError:
             flash("El email ya está en uso.", "error")
-            return redirect('/registro')
-        except Exception as e:
-            app.logger.error(f"Error inesperado durante el registro: {e}")
-            flash("Ocurrió un error inesperado durante el registro. Por favor, intentá de nuevo.", "error")
             return redirect('/registro')
         finally:
             conn.close()
