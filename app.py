@@ -340,6 +340,10 @@ def registro():
         except sqlite3.IntegrityError:
             flash("El email ya está en uso.", "error")
             return redirect('/registro')
+        except Exception as e:
+            app.logger.error(f"Error inesperado durante el registro: {e}")
+            flash("Ocurrió un error inesperado durante el registro. Por favor, intentá de nuevo.", "error")
+            return redirect('/registro')
         finally:
             conn.close()
             
