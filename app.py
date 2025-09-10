@@ -1016,6 +1016,35 @@ def guardar_nota_turno():
     
     conn.close()
     return jsonify({'status': 'success', 'message': '¡Nota guardada!'})
+
+@app.route('/turno/borrar', methods=['POST'])
+def borrar_turno():
+    if 'usuario_id' not in session:
+        return redirect('/login')
+
+    usuario_id_actual = session['usuario_id']
+    turno_id = request.form.get('turno_id')
+    fecha_turno_str = request.form.get('fecha_turno')
+
+    if not turno_id or not fecha_turno_str:
+        flash("Error al intentar borrar el turno. Faltan datos.", "error")
+        return redirect('/panel')
+
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM turnos WHERE id = ? AND usuario_id = ?", (turno_id, usuario_id_actual))
+    conn.commit()
+    conn.close()
+
+    flash("Turno cancelado con éxito.", "success")
+
+    # Redirect back to the day view
+    try:
+        fecha_dt = datetime.strptime(fecha_turno_str, '%Y-%m-%d')
+        return redirect(url_for('ver_detalle_dia', ano=fecha_dt.year, mes=fecha_dt.month, dia=fecha_dt.day))
+    except ValueError:
+        flash("Fecha inválida, volviendo al panel.", "error")
+        return redirect('/panel')
 @app.route('/agregar_turno', methods=['POST'])
 def agregar_turno():
     if 'usuario_id' not in session:
